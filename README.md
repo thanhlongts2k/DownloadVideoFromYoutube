@@ -4,11 +4,11 @@
 
 ---
 
-[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.2)
-[![Download APK](https://img.shields.io/badge/Download-YouTubex%20APK%20(26.8MB)-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.2/YouTubex-v1.0.2.apk)
+[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.3)
+[![Download APK](https://img.shields.io/badge/Download-YouTubex%20APK%20(26.8MB)-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.3/YouTubex-v1.0.3.apk)
 
-> 📲 **Tải trực tiếp bản cài đặt Android APK**: [YouTubex-v1.0.2.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.2/YouTubex-v1.0.2.apk)  
-> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.0.2](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.2)
+> 📲 **Tải trực tiếp bản cài đặt Android APK**: [YouTubex-v1.0.3.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.3/YouTubex-v1.0.3.apk)  
+> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.0.3](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.3)
 
 ---
 

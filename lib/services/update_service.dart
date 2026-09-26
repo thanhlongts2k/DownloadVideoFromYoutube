@@ -1,8 +1,8 @@
+import 'storage_service.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import '../core/constants/app_config.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
@@ -158,9 +158,9 @@ class _UpdateDialogState extends State<_UpdateDialog> {
     });
 
     try {
-      final tempDir = await getTemporaryDirectory();
+      final downloadDir = await StorageService.getDownloadDirectory(isAudio: false);
       final apkPath =
-          '${tempDir.path}/YouTubex_${widget.update.tagName}.apk';
+          '${downloadDir.path}/YouTubex_${widget.update.tagName}.apk';
       final file = File(apkPath);
       if (await file.exists()) await file.delete();
 

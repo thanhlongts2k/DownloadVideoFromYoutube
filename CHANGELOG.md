@@ -2,6 +2,20 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **YouTubex** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.3] - 2026-09-26
+
+### [Added]
+- **Kích hoạt phát hành tự động qua In-App Update**:
+  - Phiên bản chính thức đầu tiên được phân phối tự động tới tất cả người dùng đang cài đặt bản v1.0.2 thông qua cơ chế GitHub In-App Auto-Update.
+  - Tối ưu đường dẫn lưu tệp APK cập nhật sang thư mục bộ nhớ dùng chung (`Downloads/YouTubex`), khắc phục triệt để lỗi phân tích gói (Parse Error) của trình cài đặt Android khi đọc từ thư mục cache riêng tư.
+  - Bổ sung tài liệu quy chuẩn `AGENTS.md` tự động hóa quy trình bump version, test, commit, push và build release trên Git cho các phiên làm việc tiếp theo.
+
+### [Changed]
+- Nâng cấp `versionCode: 4` và `versionName: 1.0.3`.
+- Đồng bộ hiển thị phiên bản động `v1.0.3` trong toàn bộ giao diện Cài đặt và thuộc tính tệp APK hệ thống.
+
+---
+
 ## [v1.0.2] - 2026-09-26
 
 ### [Added]
