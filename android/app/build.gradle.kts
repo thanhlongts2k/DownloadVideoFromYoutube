@@ -22,8 +22,8 @@ android {
         applicationId = "com.antigravity.ytdownloader"
         minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
         multiDexEnabled = true
     }
 
