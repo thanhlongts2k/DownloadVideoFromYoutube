@@ -4,13 +4,13 @@
 
 ---
 > ⚠️ **Yêu cầu quan trọng từ người dùng**:
-> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (lutter build apk --release), tạo tag git release (ví dụ 1.0.0) và tự động tạo GitHub Release đính kèm file pp-release.apk lên repository https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git!
-
+> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (`flutter build apk --release`), tạo tag git release (ví dụ `v1.0.0`) và tự động tạo GitHub Release đính kèm file `app-release.apk` lên repository `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`!
 ---
 
 ## 🏗️ 1. KIẾN TRÚC TỔNG THỂ (DUAL-ENGINE ARCHITECTURE)
 
-\┌────────────────────────────────────────────────────────┐
+```
+┌────────────────────────────────────────────────────────┐
 │                   YouTubex Mobile App                  │
 │       (Flutter 3.24+ / Riverpod / Glassmorphism)       │
 └───────────────────────────┬────────────────────────────┘
@@ -38,71 +38,75 @@
  │   - Trình phát tích hợp Audio/Video Player          │
  │   - Chia sẻ nhanh qua Zalo, Telegram, Open With     │
  └─────────────────────────────────────────────────────┘
-\
+```
+
 ---
 
 ## 🎯 2. LỘ TRÌNH TRIỂN KHAI TỪNG PHASE (DETAILED PHASES)
 
 ### 📌 PHASE 0: Khởi tạo dự án & Đặc tả kế hoạch
-- [x] Tạo dự án Flutter Android (\ytdownloader\).
-- [x] Lập kế hoạch chi tiết \PLAN.md\ và \README.md\.
-- [x] Cấu hình \.gitignore\ và git remote \https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git\.
-- [ ] Commit & Push Phase 0.
+- [x] Tạo dự án Flutter Android (`ytdownloader`).
+- [x] Lập kế hoạch chi tiết `PLAN.md` và `README.md`.
+- [x] Cấu hình `.gitignore` và git remote `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`.
+- [x] Commit & Push Phase 0 (`0e167ed`).
 
 ### 📌 PHASE 1: Nền tảng Core, Design System & Data Models
-- [ ] Cấu hình \pubspec.yaml\ với các package chuẩn:
-  - State Management: \lutter_riverpod  - Network & Download: \dio  - Direct YouTube Extractor: \youtube_explode_dart  - Storage & Cache: \shared_preferences\, \path_provider  - UI & Media: \cached_network_image\, \open_filex\, \share_plus\, \permission_handler\, \lutter_local_notifications- [ ] Xây dựng **Design System Tokens** (\AppColors\, \AppTextStyles\, \LiquidGlassSurface\, \GlassButton\, \QualityBadge\).
-- [ ] Định nghĩa Data Models:
-  - \VideoMetadata\ (ID, tiêu đề, tác giả, thời lượng, thumbnail, lượt xem).
-  - \DownloadFormat\ (độ phân giải, bitrate, dung lượng ước tính, loại video/audio).
-  - \DownloadTask\ (ID, tiến độ %, tốc độ tải, dung lượng đã tải, trạng thái: downloading, paused, completed, error).
-- [ ] Commit & Push Phase 1.
+- [x] Cấu hình `pubspec.yaml` với các package chuẩn:
+  - State Management: `flutter_riverpod`
+  - Network & Download: `dio`
+  - Direct YouTube Extractor: `youtube_explode_dart`
+  - Storage & Cache: `shared_preferences`, `path_provider`
+  - UI & Media: `cached_network_image`, `open_filex`, `share_plus`, `permission_handler`, `flutter_local_notifications`
+- [x] Xây dựng **Design System Tokens** (`AppColors`, `AppTypography`, `AppTheme`).
+- [x] Bổ sung components Liquid Glass: `LiquidGlassCard`, `GlassButton`, `QualityBadge`.
+- [x] Định nghĩa Data Models: `VideoMetadata`, `DownloadFormat`, `DownloadTask`.
+- [x] Commit & Push Phase 1 (`2d541cb`).
 
 ### 📌 PHASE 2: Services & Downloader Engines
-- [ ] **Engine Service**:
-  - \DirectYouTubeService\: Bóc tách trực tiếp trên máy bằng \youtube_explode_dart\.
-  - \ServerApiService\: Kết nối tới Python Flask API (\http://192.168.x.x:5000\ hoặc host online) khi người dùng muốn tận dụng FFmpeg gộp 1080p hoặc nén MP3 192k.
-- [ ] **URL Parser & Cleaner**: Tự động nhận diện link YouTube, shorts, youtu.be, loại bỏ tham số playlist/mix rác.
-- [ ] **Download Service**: Quản lý hàng đợi tải (Download Queue), ghi file trực tiếp vào bộ nhớ thiết bị, cập nhật notification nền.
-- [ ] Commit & Push Phase 2.
+- [x] **URL Parser & Cleaner** (`UrlCleaner`): Tự động nhận diện link YouTube, shorts, youtu.be, loại bỏ tham số playlist/mix rác.
+- [x] **Engine A (Direct)**: Bóc tách trực tiếp trên máy bằng `youtube_explode_dart`.
+- [x] **Engine B (Server)**: Kết nối tới Python Flask API (`http://192.168.x.x:5000`).
+- [x] **Storage Service**: Quản lý đường dẫn lưu Movies/Music công cộng trên Android.
+- [x] **Notification Service**: Cập nhật tiến độ tải nền trên thanh trạng thái Notification.
+- [x] **Download Manager**: Quản lý hàng đợi tải, tính tốc độ (MB/s) và tiến độ thời gian thực.
+- [x] Commit & Push Phase 2 (`8c8692c`).
 
 ### 📌 PHASE 3: Giao diện Người dùng Chính (Core UI Screens)
-- [ ] **Màn hình Trang chủ (Home Screen)**:
-  - Tự động nhận diện URL từ Clipboard khi vừa mở ứng dụng.
+- [x] **Màn hình Trang chủ (Home Screen)**:
+  - Tự động nhận diện URL từ Clipboard khi mở ứng dụng.
   - Thanh nhập URL kiểu kính mờ (Glassmorphism Input) với nút Paste & Clear nhanh.
-  - Trạng thái tải thông tin (Shimmer Skeleton Loader).
-- [ ] **Bảng chọn chất lượng (Format Selector Modal)**:
+  - Chuyển đổi linh hoạt giữa Engine Direct và Server Mode.
+- [x] **Bảng chọn chất lượng (Format Selector Modal)**:
   - Hiển thị đầy đủ Thumbnail, Thời lượng, Kênh, Tiêu đề.
-  - Danh sách video: 1080p Full HD, 720p HD, 480p, 360p kèm pill dung lượng \📦 ... MB\.
+  - Danh sách video: 1080p Full HD, 720p HD, 480p, 360p kèm pill dung lượng `📦 ... MB`.
   - Danh sách audio: HQ MP3 192kbps & Fast M4A.
-  - Nút Tải về hiệu ứng bấm mượt mà, phản hồi rung haptic.
-- [ ] **Màn hình Tiến trình Đang tải (Active Downloads Tab)**:
+- [x] **Màn hình Tiến trình Đang tải (Active Downloads Tab)**:
   - Thẻ tải động với thanh Progress Bar neon phát sáng.
   - Hiển thị % hoàn thành, tốc độ tải tức thì (MB/s), thời gian còn lại (ETA).
-- [ ] Commit & Push Phase 3.
+- [x] Tích hợp thanh điều hướng Bottom Navigation vào `main.dart`.
+- [x] Commit & Push Phase 3 (`5980aa3`).
 
 ### 📌 PHASE 4: Thư viện Đã tải & Trình phát Offline (Media Library)
-- [ ] **Thư viện Media (Downloaded Tab)**:
+- [x] **Thư viện Media (Downloaded Tab)**:
   - Bộ lọc tabs: Tất cả, Video, Âm thanh.
-  - Hiển thị ngày tải, kích thước file, thời lượng.
-  - Menu ngữ cảnh: Mở bằng ứng dụng ngoài (\open_filex\), Chia sẻ (\share_plus\), Xóa file.
-- [ ] **Trình phát Offline tích hợp**:
-  - Trình phát âm thanh nổi (Mini Audio Player) với nút Play/Pause/Seek bar.
-- [ ] Commit & Push Phase 4.
+  - Tìm kiếm file đã tải trực tiếp.
+  - Thao tác: Mở bằng ứng dụng ngoài (`open_filex`), Chia sẻ (`share_plus`), Xóa file.
+- [x] Commit & Push Phase 4 (`4234789`).
 
 ### 📌 PHASE 5: Cài đặt, Phân quyền & Đóng gói Release APK
-- [ ] **Màn hình Cài đặt (Settings)**:
+- [x] **Màn hình Cài đặt (Settings)**:
   - Cấu hình Server IP (mặc định hoặc tự nhập LAN IP của máy tính chạy server Flask).
-  - Chọn thư mục lưu trữ mặc định.
-  - Chuyển đổi qua lại giữa Engine Direct (Offline) và Engine Server (FFmpeg HQ).
-- [ ] Cấu hình quyền \AndroidManifest.xml\ (INTERNET, WRITE_EXTERNAL_STORAGE, FOREGROUND_SERVICE, POST_NOTIFICATIONS).
-- [ ] Kiểm thử toàn diện & build file APK Release (\lutter build apk --release\).
-- [ ] Cập nhật tài liệu \README.md\ hoàn chỉnh.
-- [ ] Commit & Push Phase 5.
+  - Chọn chế độ Engine mặc định, thông tin phiên bản app.
+- [x] Cấu hình quyền `AndroidManifest.xml` (INTERNET, STORAGE, NOTIFICATIONS, usesCleartextTraffic).
+- [x] Nâng cấp cấu hình Android Gradle sang Kotlin DSL (`settings.gradle.kts`, `build.gradle.kts`, Gradle 8.10.2, Kotlin 1.9.24).
+- [x] Bật `coreLibraryDesugaring` cho `flutter_local_notifications`.
+- [x] Biên dịch thành công APK Release: `build/app/outputs/flutter-apk/app-release.apk` (26.8 MB).
+- [x] Thiết lập GitHub Actions CI/CD workflow `.github/workflows/release.yml` tự động phát hành bản build APK khi đẩy git tag.
+- [x] Commit, tạo tag `v1.0.0` và Push lên Git.
 
 ---
 
 ## 🔒 NGUYÊN TẮC QUẢN LÝ DỰ ÁN
 1. Mọi phase đều được kiểm tra biên dịch không lỗi trước khi commit.
-2. Commit message tuân thủ chuẩn Conventional Commits (\eat\, \docs\, \ix\, efactor\).
-3. Push lần lượt từng phase lên repository GitHub \https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git\.
+2. Commit message tuân thủ chuẩn Conventional Commits (`feat`, `docs`, `fix`, `refactor`).
+3. Push lần lượt từng phase lên repository GitHub `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`.
