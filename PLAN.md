@@ -3,6 +3,10 @@
 > **Mục tiêu**: Xây dựng ứng dụng di động Android chuyên nghiệp, giao diện Dark Glassmorphism cao cấp, hỗ trợ bóc tách và tải video/audio YouTube mọi chất lượng (1080p, 720p, 480p, MP3 CBR 192k, Fast M4A), quản lý tiến trình tải nền và thư viện phát offline.
 
 ---
+> ⚠️ **Yêu cầu quan trọng từ người dùng**:
+> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (lutter build apk --release), tạo tag git release (ví dụ 1.0.0) và tự động tạo GitHub Release đính kèm file pp-release.apk lên repository https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git!
+
+---
 
 ## 🏗️ 1. KIẾN TRÚC TỔNG THỂ (DUAL-ENGINE ARCHITECTURE)
 

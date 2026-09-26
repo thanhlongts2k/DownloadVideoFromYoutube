@@ -72,6 +72,7 @@ class GlassButton extends StatelessWidget {
                       ),
                     ],
                   ),
+          ),
         ),
       ),
     );
