@@ -35,7 +35,7 @@ class UpdateService {
   static final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 15),
-    headers: {'User-Agent': 'YouTubex-App'},
+    headers: {'User-Agent': 'TubeX-App'},
   ));
 
   static Future<UpdateInfo?> checkForUpdate() async {
@@ -52,12 +52,25 @@ class UpdateService {
           String apkUrl = '';
           int apkSize = 0;
 
+          // Prioritize branded TubeX/YouTubex APK over generic build artifacts
           for (final asset in assets) {
-            final name = asset['name'] as String? ?? '';
-            if (name.endsWith('.apk')) {
+            final name = (asset['name'] as String? ?? '').toLowerCase();
+            if (name.endsWith('.apk') &&
+                (name.contains('tubex') || name.contains('youtubex'))) {
               apkUrl = asset['browser_download_url'] as String? ?? '';
               apkSize = asset['size'] as int? ?? 0;
               break;
+            }
+          }
+
+          if (apkUrl.isEmpty) {
+            for (final asset in assets) {
+              final name = asset['name'] as String? ?? '';
+              if (name.endsWith('.apk')) {
+                apkUrl = asset['browser_download_url'] as String? ?? '';
+                apkSize = asset['size'] as int? ?? 0;
+                break;
+              }
             }
           }
 

@@ -1,6 +1,26 @@
 # Changelog
 
-Tất cả các thay đổi đáng chú ý của dự án **YouTubex** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [v1.0.4] - 2026-09-26
+
+### [Fixed]
+- **Khắc phục triệt để lỗi "Chưa cài đặt được ứng dụng do gói xung đột với một gói hiện có" (Signature Mismatch)**:
+  - Cố định hóa release keystore chuyên dụng (`keystore.jks`) trong project với chữ ký số chuẩn SHA1 `33:61:D2:2E:84:65:AE:C8:C3:C4:37:1D:79:6A:84:05:57:5D:F3:B0`.
+  - Cấu hình `build.gradle.kts` và GitHub Actions CI/CD cùng ký bằng chung 1 keystore duy nhất, xóa bỏ hoàn toàn xung đột chữ ký ngẫu nhiên giữa Ubuntu Runner và máy local Windows.
+  - Tối ưu bộ lọc chọn APK trong `UpdateService`: ưu tiên tải chính xác tệp phát hành `TubeX-*.apk`, tránh tải nhầm artifact hệ thống không tương thích.
+
+### [Changed]
+- **Đổi tên ứng dụng chính thức thành TubeX**:
+  - Đổi thương hiệu từ `YouTubex` sang **`TubeX`** (tránh xung đột nhãn hiệu và tương thích tối đa với chính sách hệ điều hành Android).
+  - Cập nhật toàn diện tên hiển thị trong `AndroidManifest.xml`, `AppConfig`, màn hình Trang chủ và Cài đặt.
+- **Thay thế Icon ứng dụng hoàn toàn mới**:
+  - Thiết kế và xuất bản bộ icon launcher chuẩn Android (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi) với phong cách Liquid Glass Neon Play Triangle kết hợp Download Arrow trên nền kim loại sang trọng.
+  - Loại bỏ hoàn toàn icon chim Flutter mặc định trên màn hình chính và thông báo hệ thống.
+- **Tăng phiên bản**:
+  - Nâng cấp `versionCode: 5` và `versionName: 1.0.4` trong `pubspec.yaml` và `build.gradle.kts`.
+
+---
 
 ## [v1.0.3] - 2026-09-26
 

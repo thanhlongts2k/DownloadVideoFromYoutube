@@ -188,7 +188,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('YouTubex', style: AppTypography.titleLarge),
+                          Text('TubeX', style: AppTypography.titleLarge),
                           Text('YouTube Media Downloader', style: AppTypography.bodySmall),
                         ],
                       ),

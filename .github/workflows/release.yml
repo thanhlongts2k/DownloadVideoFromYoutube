@@ -34,13 +34,16 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Prepare Release Asset
+        run: cp build/app/outputs/flutter-apk/app-release.apk TubeX-${{ github.ref_name }}.apk
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: YouTubex ${{ github.ref_name }} - Android Release
+          name: TubeX ${{ github.ref_name }} - Android Release
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: TubeX-${{ github.ref_name }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

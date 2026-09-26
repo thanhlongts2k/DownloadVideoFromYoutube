@@ -1,17 +1,17 @@
-# 📋 KẾ HOẠCH PHÁT TRIỂN ỨNG DỤNG ANDROID: YOUTUBE MEDIA DOWNLOADER (YouTubex)
+# 📋 KẾ HOẠCH PHÁT TRIỂN ỨNG DỤNG ANDROID: YOUTUBE MEDIA DOWNLOADER (TubeX)
 
 > **Mục tiêu**: Xây dựng ứng dụng di động Android chuyên nghiệp, giao diện Dark Glassmorphism cao cấp, hỗ trợ bóc tách và tải video/audio YouTube mọi chất lượng (1080p, 720p, 480p, MP3 CBR 192k, Fast M4A), quản lý tiến trình tải nền và thư viện phát offline.
 
 ---
 > ⚠️ **Yêu cầu quan trọng từ người dùng**:
-> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (`flutter build apk --release`), tạo tag git release (ví dụ `v1.0.3`) và tự động tạo GitHub Release đính kèm file `app-release.apk` lên repository `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`!
+> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (`flutter build apk --release`), tạo tag git release (ví dụ `v1.0.4`) và tự động tạo GitHub Release đính kèm file `app-release.apk` lên repository `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`!
 ---
 
 ## 🏗️ 1. KIẾN TRÚC TỔNG THỂ (DUAL-ENGINE ARCHITECTURE)
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   YouTubex Mobile App                  │
+│                   TubeX Mobile App                  │
 │       (Flutter 3.24+ / Riverpod / Glassmorphism)       │
 └───────────────────────────┬────────────────────────────┘
                             │
@@ -34,7 +34,7 @@
                             ▼
  ┌─────────────────────────────────────────────────────┐
  │               LOCAL STORAGE & LIBRARY               │
- │   - Lưu vào Movies/YouTubex & Music/YouTubex        │
+ │   - Lưu vào Movies/TubeX & Music/TubeX        │
  │   - Trình phát tích hợp Audio/Video Player          │
  │   - Chia sẻ nhanh qua Zalo, Telegram, Open With     │
  └─────────────────────────────────────────────────────┘
@@ -102,12 +102,12 @@
 - [x] Bật `coreLibraryDesugaring` cho `flutter_local_notifications`.
 - [x] Biên dịch thành công APK Release: `build/app/outputs/flutter-apk/app-release.apk` (26.8 MB).
 - [x] Thiết lập GitHub Actions CI/CD workflow `.github/workflows/release.yml` tự động phát hành bản build APK khi đẩy git tag.
-- [x] Commit, tạo tag `v1.0.3` và Push lên Git.
-- [x] Tạo GitHub Release chính thức đính kèm tệp `YouTubex-v1.0.3.apk`.
+- [x] Commit, tạo tag `v1.0.4` và Push lên Git.
+- [x] Tạo GitHub Release chính thức đính kèm tệp `TubeX-v1.0.4.apk`.
 
 
 
-### 🚀 PLAN PHÁT HÀNH v1.0.3 — HIGH-SPEED ENGINE, AUDIO FIX & GITHUB AUTO-UPDATE
+### 🚀 PLAN PHÁT HÀNH v1.0.4 — HIGH-SPEED ENGINE, AUDIO FIX & GITHUB AUTO-UPDATE
 
 #### 🎯 Mục tiêu:
 1. Xử lý triệt để tốc độ tải bị bóp nghẽn 12 KB/s và đứng đơ (stuck 1.3 MB / 2.1 MB) bằng `streamsClient.get()`.
@@ -133,23 +133,23 @@
   - Tự động tải tệp APK cập nhật và kích hoạt trình cài đặt hệ thống Android qua `open_filex`.
   - Thêm nút "Kiểm tra bản cập nhật" thủ công trong màn hình Cài đặt (`SettingsScreen`).
 
-- [x] **PHASE 4: Kiểm thử toàn diện, Cập nhật CHANGELOG & Đóng gói Bản Build Git v1.0.3**
+- [x] **PHASE 4: Kiểm thử toàn diện, Cập nhật CHANGELOG & Đóng gói Bản Build Git v1.0.4**
   - Chạy `flutter analyze` đạt 0 issues.
   - Viết và chạy unit tests đạt 100% pass.
   - Ghi nhận chi tiết vào `CHANGELOG.md` chuẩn Keep a Changelog.
   - Tăng phiên bản `1.0.2+3` trong `pubspec.yaml`.
   - Biên dịch APK Release `build/app/outputs/flutter-apk/app-release.apk`.
-  - Commit, gắn tag `v1.0.3`, đẩy lên Git và tạo GitHub Release đính kèm tệp `YouTubex-v1.0.3.apk`.
+  - Commit, gắn tag `v1.0.4`, đẩy lên Git và tạo GitHub Release đính kèm tệp `TubeX-v1.0.4.apk`.
 
-### 🛠️ BẢN VÁ LỖI & NÂNG CẤP v1.0.3 (HOTFIX)
+### 🛠️ BẢN VÁ LỖI & NÂNG CẤP v1.0.4 (HOTFIX)
 - [x] **Fix lỗi Video không có âm thanh**: Tích hợp Android Native `MediaMuxer` ghép luồng Video MP4 (H.264) + Audio AAC (`itag 140`) trực tiếp trên thiết bị (Engine A).
 - [x] **Fix lỗi lộ chuỗi mã nội suy**: Xóa bỏ các ký tự escape `\$` trong `downloads_screen.dart`.
 - [x] **Unit Tests**: Bổ sung `test/muxer_test.dart` đạt 100% test pass.
-- [x] **Phát hành bản build v1.0.3**: Đóng gói APK Release mới và phát hành trên GitHub Release.
+- [x] **Phát hành bản build v1.0.4**: Đóng gói APK Release mới và phát hành trên GitHub Release.
 
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
-- 📦 **GitHub Release**: [v1.0.3 - YouTubex Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.3)
-- 📥 **Link tải trực tiếp APK**: [YouTubex-v1.0.3.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.3/YouTubex-v1.0.3.apk)
+- 📦 **GitHub Release**: [v1.0.4 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.4)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.4.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.4/TubeX-v1.0.4.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, biên dịch Release thành công 100%.
 
 

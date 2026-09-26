@@ -1,8 +1,8 @@
 name: ytdownloader
-description: "YouTubex - High Quality YouTube Video and Audio Downloader for Android"
+description: "TubeX - High Quality YouTube Video and Audio Downloader for Android"
 publish_to: 'none'
 
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: '>=3.4.0 <4.0.0'

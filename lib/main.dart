@@ -12,16 +12,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().init();
   await StorageService.requestStoragePermission();
-  runApp(const ProviderScope(child: YouTubexApp()));
+  runApp(const ProviderScope(child: TubeXApp()));
 }
 
-class YouTubexApp extends StatelessWidget {
-  const YouTubexApp({super.key});
+class TubeXApp extends StatelessWidget {
+  const TubeXApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'YouTubex',
+      title: 'TubeX',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const MainNavigationScreen(),

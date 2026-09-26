@@ -1,14 +1,14 @@
-# 📱 YouTubex — YouTube Video & Audio Downloader for Android
+# 📱 TubeX — YouTube Video & Audio Downloader for Android
 
 Ứng dụng di động Android cao cấp được thiết kế theo phong cách **Liquid Glassmorphism & Dark Neon**, hỗ trợ phân tích và tải xuống video/audio từ YouTube với đầy đủ các mức độ phân giải và chất lượng âm thanh cao cấp nhất.
 
 ---
 
-[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.3)
-[![Download APK](https://img.shields.io/badge/Download-YouTubex%20APK%20(26.8MB)-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.3/YouTubex-v1.0.3.apk)
+[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.4)
+[![Download APK](https://img.shields.io/badge/Download-TubeX%20APK%20(26.8MB)-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.4/TubeX-v1.0.4.apk)
 
-> 📲 **Tải trực tiếp bản cài đặt Android APK**: [YouTubex-v1.0.3.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.3/YouTubex-v1.0.3.apk)  
-> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.0.3](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.3)
+> 📲 **Tải trực tiếp bản cài đặt Android APK**: [TubeX-v1.0.4.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.4/TubeX-v1.0.4.apk)  
+> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.0.4](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.4)
 
 ---
 

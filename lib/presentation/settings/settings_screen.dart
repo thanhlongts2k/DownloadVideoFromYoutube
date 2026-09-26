@@ -186,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderRadius: 16,
               child: Column(
                 children: [
-                  _buildInfoRow('Tên ứng dụng', 'YouTubex Mobile'),
+                  _buildInfoRow('Tên ứng dụng', 'TubeX Mobile'),
                   const Divider(color: Colors.white10, height: 20),
                   _buildInfoRow('Phiên bản', 'v${AppConfig.appVersion} (Release)'),
                   const Divider(color: Colors.white10, height: 20),

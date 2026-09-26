@@ -6,9 +6,9 @@ void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: YouTubexApp(),
+        child: TubeXApp(),
       ),
     );
-    expect(find.text('YouTubex'), findsOneWidget);
+    expect(find.text('TubeX'), findsOneWidget);
   });
 }

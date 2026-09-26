@@ -19,7 +19,7 @@ class StorageService {
     try {
       if (Platform.isAndroid) {
         // Ưu tiên thư mục Download công cộng của Android
-        final publicDownload = Directory('/storage/emulated/0/Download/YouTubex');
+        final publicDownload = Directory('/storage/emulated/0/Download/TubeX');
         if (await publicDownload.exists()) {
           baseDir = publicDownload;
         } else {
