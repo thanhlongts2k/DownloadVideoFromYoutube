@@ -9,6 +9,7 @@ import '../../core/utils/url_cleaner.dart';
 import '../../services/youtube_direct_service.dart';
 import '../../services/server_api_service.dart';
 import 'widgets/format_selector_sheet.dart';
+import '../settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback onNavigateToDownloads;
@@ -28,7 +29,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ServerApiService _serverService = ServerApiService();
 
   bool _isLoading = false;
-  bool _useServerEngine = false; // Mặc định dùng Engine A (Direct Standalone)
+  bool _useServerEngine = false;
 
   @override
   void initState() {
@@ -82,7 +83,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     try {
       if (_useServerEngine) {
-        // Engine B: Server API Mode
         final result = await _serverService.fetchInfo(rawUrl);
         if (result != null && mounted) {
           _showFormatSheet(result['metadata'], result['formats']);
@@ -90,7 +90,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _fallbackToDirect(rawUrl);
         }
       } else {
-        // Engine A: Direct Standalone Mode
         final metadata = await _directService.fetchMetadata(rawUrl);
         final formats = await _directService.fetchFormats(rawUrl);
 
@@ -181,42 +180,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ],
                   ),
-                  // Engine Switcher Chip
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        _useServerEngine = !_useServerEngine;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _useServerEngine ? AppColors.secondary.withOpacity(0.2) : Colors.white10,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _useServerEngine ? AppColors.secondary : Colors.white24,
-                          width: 1,
-                        ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          );
+                        },
+                        tooltip: 'Cài đặt',
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _useServerEngine ? Icons.cloud_done : Icons.smartphone,
-                            color: _useServerEngine ? AppColors.secondary : Colors.white70,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _useServerEngine ? 'Server Mode' : 'Direct Mode',
-                            style: AppTypography.badgeText.copyWith(
-                              color: _useServerEngine ? AppColors.secondary : Colors.white70,
-                              fontSize: 10,
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _useServerEngine = !_useServerEngine;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _useServerEngine ? AppColors.secondary.withOpacity(0.2) : Colors.white10,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _useServerEngine ? AppColors.secondary : Colors.white24,
+                              width: 1,
                             ),
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              Icon(
+                                _useServerEngine ? Icons.cloud_done : Icons.smartphone,
+                                color: _useServerEngine ? AppColors.secondary : Colors.white70,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _useServerEngine ? 'Server Mode' : 'Direct Mode',
+                                style: AppTypography.badgeText.copyWith(
+                                  color: _useServerEngine ? AppColors.secondary : Colors.white70,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
