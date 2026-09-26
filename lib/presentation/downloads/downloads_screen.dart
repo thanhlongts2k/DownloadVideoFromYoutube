@@ -19,7 +19,7 @@ class DownloadsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Đang Tải Xuống (\${activeTasks.length})', style: AppTypography.titleMedium),
+        title: Text('Đang Tải Xuống (${activeTasks.length})', style: AppTypography.titleMedium),
       ),
       body: activeTasks.isEmpty
           ? Center(
@@ -128,7 +128,7 @@ class DownloadsScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '\${task.downloadedSizeFormatted} / \${task.totalSizeFormatted}',
+                            '${task.downloadedSizeFormatted} / ${task.totalSizeFormatted}',
                             style: AppTypography.bodySmall,
                           ),
                           Row(

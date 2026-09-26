@@ -11,6 +11,8 @@ class DownloadFormat {
   final int? fps;
   final FormatType type;
   final String? directStreamUrl;
+  final String? audioStreamUrl;
+  final int? audioFilesize;
 
   DownloadFormat({
     required this.formatId,
@@ -23,6 +25,8 @@ class DownloadFormat {
     this.fps,
     required this.type,
     this.directStreamUrl,
+    this.audioStreamUrl,
+    this.audioFilesize,
   });
 
   String get filesizeFormatted {
@@ -35,4 +39,5 @@ class DownloadFormat {
   }
 
   bool get isAudio => type == FormatType.audio;
+  bool get needsMuxing => audioStreamUrl != null && audioStreamUrl!.isNotEmpty;
 }
