@@ -4,7 +4,11 @@ import 'package:ytdownloader/main.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: YouTubexApp()));
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: YouTubexApp(),
+      ),
+    );
     expect(find.text('YouTubex'), findsOneWidget);
   });
 }

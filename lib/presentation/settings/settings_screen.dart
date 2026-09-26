@@ -1,3 +1,5 @@
+import '../../services/update_service.dart';
+import '../../core/constants/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
@@ -120,6 +122,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 28),
 
+            Text('Bản Cập Nhật Ứng Dụng', style: AppTypography.titleSmall),
+            const SizedBox(height: 8),
+            LiquidGlassCard(
+              padding: const EdgeInsets.all(16),
+              borderRadius: 16,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.system_update_rounded, color: AppColors.primary),
+                ),
+                title: Text('Kiểm tra bản cập nhật', style: AppTypography.titleSmall),
+                subtitle: Text('Phiên bản hiện tại: v${AppConfig.appVersion}', style: AppTypography.bodySmall),
+                trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                onTap: () => UpdateService.checkAndPromptUpdate(context, silent: false),
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
             Text('Thông Tin Ứng Dụng', style: AppTypography.titleSmall),
             const SizedBox(height: 8),
             LiquidGlassCard(
@@ -129,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _buildInfoRow('Tên ứng dụng', 'YouTubex Mobile'),
                   const Divider(color: Colors.white10, height: 20),
-                  _buildInfoRow('Phiên bản', 'v1.0.0 (Release)'),
+                  _buildInfoRow('Phiên bản', 'v${AppConfig.appVersion} (Release)'),
                   const Divider(color: Colors.white10, height: 20),
                   _buildInfoRow('Giao diện', 'Liquid Glass & Dark Neon'),
                   const Divider(color: Colors.white10, height: 20),

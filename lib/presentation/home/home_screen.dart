@@ -1,3 +1,5 @@
+import 'dart:io';
+import '../../services/update_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,10 +15,12 @@ import '../settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback onNavigateToDownloads;
+  final bool autoCheckUpdate;
 
   const HomeScreen({
     super.key,
     required this.onNavigateToDownloads,
+    this.autoCheckUpdate = true,
   });
 
   @override
@@ -35,6 +39,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     _checkClipboard();
+    if (widget.autoCheckUpdate && !Platform.environment.containsKey('FLUTTER_TEST')) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        UpdateService.checkAndPromptUpdate(context, silent: true);
+      });
+    }
   }
 
   @override

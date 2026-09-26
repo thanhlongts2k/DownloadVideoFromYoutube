@@ -15,7 +15,7 @@ class DownloadTask {
   final String resolution;
   final String ext;
   final String filePath;
-  final int totalBytes;
+  int totalBytes;
   int downloadedBytes;
   double progress;
   String speedStr;

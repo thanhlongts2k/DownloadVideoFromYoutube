@@ -13,6 +13,9 @@ class DownloadFormat {
   final String? directStreamUrl;
   final String? audioStreamUrl;
   final int? audioFilesize;
+  final String? videoId;
+  final int? videoTag;
+  final int? audioTag;
 
   DownloadFormat({
     required this.formatId,
@@ -27,6 +30,9 @@ class DownloadFormat {
     this.directStreamUrl,
     this.audioStreamUrl,
     this.audioFilesize,
+    this.videoId,
+    this.videoTag,
+    this.audioTag,
   });
 
   String get filesizeFormatted {
@@ -39,5 +45,9 @@ class DownloadFormat {
   }
 
   bool get isAudio => type == FormatType.audio;
-  bool get needsMuxing => audioStreamUrl != null && audioStreamUrl!.isNotEmpty;
+  bool get needsMuxing =>
+      audioStreamUrl != null &&
+      audioStreamUrl!.isNotEmpty &&
+      audioTag != null &&
+      videoTag != null;
 }

@@ -40,17 +40,19 @@ class YoutubeDirectService {
 
       // Best MP4 audio stream (itag 140 / AAC) for muxing with video
       final audioStreams = manifest.audioOnly.sortByBitrate();
-      final mp4Audios = audioStreams.where((a) => a.container.name == 'mp4').toList();
+      final mp4Audios =
+          audioStreams.where((a) => a.container.name == 'mp4').toList();
       final bestAudioStream = mp4Audios.isNotEmpty
           ? mp4Audios.first
           : (audioStreams.isNotEmpty ? audioStreams.first : null);
       final bestAudioUrl = bestAudioStream?.url.toString();
       final bestAudioSize = bestAudioStream?.size.totalBytes ?? 0;
+      final bestAudioTag = bestAudioStream?.tag;
 
       // 1. Video Streams (Muxed & Video-only)
       final seenResolutions = <int>{};
 
-      // Muxed streams (Video + Audio sẵn có trên YouTube, ví dụ 360p hoặc 720p nếu có)
+      // Muxed streams (Video + Audio sẵn có trên YouTube, ví dụ 360p hoặc 720p)
       for (final s in manifest.muxed.sortByVideoQuality()) {
         final height = s.videoResolution.height;
         if (!seenResolutions.contains(height)) {
@@ -73,14 +75,19 @@ class YoutubeDirectService {
             type: FormatType.video,
             directStreamUrl: s.url.toString(),
             audioStreamUrl: null,
+            videoId: videoId,
+            videoTag: s.tag,
+            audioTag: null,
           ));
         }
       }
 
-      // Video only streams (1080p, 1440p, 2160p, 720p...) - Ghép với audio MP4
+      // Video only streams (1080p, 1440p, 2160p, 720p...) - Cần ghép với audio MP4
       final allVideoOnly = manifest.videoOnly.sortByVideoQuality();
-      final mp4VideoOnly = allVideoOnly.where((s) => s.container.name == 'mp4').toList();
-      final candidateVideos = mp4VideoOnly.isNotEmpty ? mp4VideoOnly : allVideoOnly;
+      final mp4VideoOnly =
+          allVideoOnly.where((s) => s.container.name == 'mp4').toList();
+      final candidateVideos =
+          mp4VideoOnly.isNotEmpty ? mp4VideoOnly : allVideoOnly;
 
       for (final s in candidateVideos) {
         final height = s.videoResolution.height;
@@ -109,6 +116,9 @@ class YoutubeDirectService {
             directStreamUrl: s.url.toString(),
             audioStreamUrl: bestAudioUrl,
             audioFilesize: bestAudioSize,
+            videoId: videoId,
+            videoTag: s.tag,
+            audioTag: bestAudioTag,
           ));
         }
       }
@@ -116,20 +126,24 @@ class YoutubeDirectService {
       // 2. Audio Streams
       if (audioStreams.isNotEmpty) {
         final bestAudio = audioStreams.first;
-        // HQ MP3 (ước tính 192k)
+        final m4aAudio = mp4Audios.isNotEmpty ? mp4Audios.first : bestAudio;
+
+        // HQ MP3
         formats.add(DownloadFormat(
           formatId: bestAudio.tag.toString(),
           resolution: 'Audio (MP3)',
           resLabel: 'Chỉ Âm thanh (Audio MP3 - 192kbps)',
           ext: 'mp3',
           qualityBadge: 'HQ MP3',
-          filesize: (bestAudio.size.totalBytes * 1.3).round(),
+          filesize: bestAudio.size.totalBytes,
           type: FormatType.audio,
           directStreamUrl: bestAudio.url.toString(),
+          videoId: videoId,
+          videoTag: null,
+          audioTag: bestAudio.tag,
         ));
 
         // Fast M4A (nguyên bản AAC từ YouTube)
-        final m4aAudio = mp4Audios.isNotEmpty ? mp4Audios.first : bestAudio;
         formats.add(DownloadFormat(
           formatId: m4aAudio.tag.toString(),
           resolution: 'Audio (M4A)',
@@ -139,6 +153,9 @@ class YoutubeDirectService {
           filesize: m4aAudio.size.totalBytes,
           type: FormatType.audio,
           directStreamUrl: m4aAudio.url.toString(),
+          videoId: videoId,
+          videoTag: null,
+          audioTag: m4aAudio.tag,
         ));
       }
 

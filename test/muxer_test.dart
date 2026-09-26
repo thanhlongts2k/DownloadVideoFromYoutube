@@ -4,7 +4,7 @@ import 'package:ytdownloader/models/download_task.dart';
 
 void main() {
   group('DownloadFormat Muxing tests', () {
-    test('needsMuxing returns true when audioStreamUrl is provided', () {
+    test('needsMuxing returns true when audioStreamUrl and tags are provided', () {
       final format = DownloadFormat(
         formatId: '137',
         resolution: '1080p',
@@ -15,6 +15,9 @@ void main() {
         audioStreamUrl: 'https://example.com/audio.m4a',
         audioFilesize: 5000000,
         filesize: 50000000,
+        videoTag: 137,
+        audioTag: 140,
+        videoId: 'dQw4w9WgXcQ',
       );
 
       expect(format.needsMuxing, isTrue);
@@ -30,6 +33,7 @@ void main() {
         ext: 'mp3',
         type: FormatType.audio,
         directStreamUrl: 'https://example.com/audio.mp3',
+        audioTag: 140,
       );
 
       expect(audioFormat.needsMuxing, isFalse);
@@ -42,6 +46,7 @@ void main() {
         ext: 'mp4',
         type: FormatType.video,
         directStreamUrl: 'https://example.com/muxed.mp4',
+        videoTag: 18,
       );
 
       expect(muxedFormat.needsMuxing, isFalse);

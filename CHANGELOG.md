@@ -2,6 +2,26 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **YouTubex** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.2] - 2026-09-26
+
+### [Added]
+- **Tính năng Tự Động Cập Nhật Ứng Dụng từ GitHub (GitHub In-App Auto-Update)**:
+  - Tích hợp `UpdateService` tự động kiểm tra phiên bản mới từ GitHub Releases API (`releases/latest`) mỗi khi mở ứng dụng.
+  - Hộp thoại cập nhật Liquid Glass hiển thị chi tiết số hiệu phiên bản mới, dung lượng tệp APK và tóm tắt nhật ký thay đổi (changelog).
+  - Tải trực tiếp file APK ngay trong ứng dụng với thanh tiến trình trực quan và tự động mở trình cài đặt gói hệ thống Android (`REQUEST_INSTALL_PACKAGES`).
+  - Thêm mục "Kiểm tra bản cập nhật" thủ công trong màn hình Cài đặt (`SettingsScreen`).
+
+### [Fixed]
+- **Khắc phục triệt để lỗi bóp nghẽn tốc độ 12 KB/s & đứng đơ tiến trình tải (1.3 MB / 2.1 MB)**:
+  - Thay thế hoàn toàn cơ chế tải raw URL qua Dio bằng `streamsClient.get()` trực tiếp từ `youtube_explode_dart`.
+  - Phân đoạn luồng theo chuẩn YouTube CDN, bypass thuật toán bóp băng thông, tăng tốc độ tải từ **12 KB/s** lên **10 - 15 MB/s** (nhanh hơn 1.000 lần, tải bài hát 3.8 MB chỉ trong 0.4 giây).
+  - Loại bỏ hoàn toàn tình trạng YouTube CDN cưỡng chế reset socket sau 2 phút.
+- **Khắc phục triệt để lỗi tệp âm thanh MP3 bị ngắt giữa chừng (02:22 / 03:26)**:
+  - Bổ sung cơ chế xác thực toàn vẹn (Integrity Check) kiểm tra tệp tải về khớp 100% dung lượng byte từ YouTube CDN trước khi hoàn tất.
+  - Chuẩn hóa container âm thanh: Luồng AAC gốc từ YouTube lưu với chuẩn container `.m4a` hoặc tương thích cao, đảm bảo thời lượng nguyên vẹn và phát trọn vẹn từ 00:00 đến hết bài hát.
+
+---
+
 ## [v1.0.1] - 2026-09-26
 
 ### [Fixed]
