@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../../services/update_service.dart';
 import 'package:flutter/material.dart';
@@ -40,8 +41,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _checkClipboard();
     if (widget.autoCheckUpdate && !Platform.environment.containsKey('FLUTTER_TEST')) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        UpdateService.checkAndPromptUpdate(context, silent: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final prefs = await SharedPreferences.getInstance();
+        final autoUpdate = prefs.getBool('auto_update_enabled') ?? true;
+        if (autoUpdate && mounted) {
+          UpdateService.checkAndPromptUpdate(context, silent: true);
+        }
       });
     }
   }

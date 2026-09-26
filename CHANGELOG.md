@@ -10,6 +10,7 @@ Tất cả các thay đổi đáng chú ý của dự án **YouTubex** sẽ đư
   - Hộp thoại cập nhật Liquid Glass hiển thị chi tiết số hiệu phiên bản mới, dung lượng tệp APK và tóm tắt nhật ký thay đổi (changelog).
   - Tải trực tiếp file APK ngay trong ứng dụng với thanh tiến trình trực quan và tự động mở trình cài đặt gói hệ thống Android (`REQUEST_INSTALL_PACKAGES`).
   - Thêm mục "Kiểm tra bản cập nhật" thủ công trong màn hình Cài đặt (`SettingsScreen`).
+  - Bổ sung công tắc bật/tắt (Switch) tùy chọn "Tự động kiểm tra cập nhật" ngay trong màn hình Cài đặt, lưu trạng thái vào SharedPreferences.
 
 ### [Fixed]
 - **Khắc phục triệt để lỗi bóp nghẽn tốc độ 12 KB/s & đứng đơ tiến trình tải (1.3 MB / 2.1 MB)**:

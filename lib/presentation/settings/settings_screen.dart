@@ -17,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _serverController = TextEditingController();
   bool _useServerEngine = false;
+  bool _autoUpdateEnabled = true;
 
   @override
   void initState() {
@@ -36,7 +37,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _serverController.text =
           prefs.getString('server_url') ?? 'http://192.168.1.100:5000';
       _useServerEngine = prefs.getBool('use_server_engine') ?? false;
+      _autoUpdateEnabled = prefs.getBool('auto_update_enabled') ?? true;
     });
+  }
+
+
+  Future<void> _toggleAutoUpdate(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_update_enabled', val);
+    setState(() => _autoUpdateEnabled = val);
   }
 
   Future<void> _saveSettings() async {
@@ -127,20 +136,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
             LiquidGlassCard(
               padding: const EdgeInsets.all(16),
               borderRadius: 16,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.autorenew_rounded, color: AppColors.primary),
+                    ),
+                    title: Text('Tự động kiểm tra cập nhật', style: AppTypography.titleSmall),
+                    subtitle: Text(
+                      'Tự động thông báo khi có phiên bản mới lúc khởi động ứng dụng',
+                      style: AppTypography.bodySmall,
+                    ),
+                    value: _autoUpdateEnabled,
+                    activeColor: AppColors.primary,
+                    onChanged: _toggleAutoUpdate,
                   ),
-                  child: const Icon(Icons.system_update_rounded, color: AppColors.primary),
-                ),
-                title: Text('Kiểm tra bản cập nhật', style: AppTypography.titleSmall),
-                subtitle: Text('Phiên bản hiện tại: v${AppConfig.appVersion}', style: AppTypography.bodySmall),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white38),
-                onTap: () => UpdateService.checkAndPromptUpdate(context, silent: false),
+                  const Divider(color: Colors.white10, height: 20),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.system_update_rounded, color: AppColors.secondary),
+                    ),
+                    title: Text('Kiểm tra bản cập nhật ngay', style: AppTypography.titleSmall),
+                    subtitle: Text('Phiên bản hiện tại: v${AppConfig.appVersion}', style: AppTypography.bodySmall),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                    onTap: () => UpdateService.checkAndPromptUpdate(context, silent: false),
+                  ),
+                ],
               ),
             ),
 
