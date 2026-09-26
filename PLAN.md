@@ -103,6 +103,12 @@
 - [x] Biên dịch thành công APK Release: `build/app/outputs/flutter-apk/app-release.apk` (26.8 MB).
 - [x] Thiết lập GitHub Actions CI/CD workflow `.github/workflows/release.yml` tự động phát hành bản build APK khi đẩy git tag.
 - [x] Commit, tạo tag `v1.0.0` và Push lên Git.
+- [x] Tạo GitHub Release chính thức đính kèm tệp `YouTubex-v1.0.0.apk`.
+### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
+- 📦 **GitHub Release**: [v1.0.0 - YouTubex Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.0)
+- 📥 **Link tải trực tiếp APK**: [YouTubex-v1.0.0.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.0/YouTubex-v1.0.0.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, biên dịch Release thành công 100%.
+
 
 ---
 

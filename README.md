@@ -4,6 +4,15 @@
 
 ---
 
+[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.0)
+[![Download APK](https://img.shields.io/badge/Download-YouTubex%20APK%20(26.8MB)-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.0/YouTubex-v1.0.0.apk)
+
+> 📲 **Tải trực tiếp bản cài đặt Android APK**: [YouTubex-v1.0.0.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.0/YouTubex-v1.0.0.apk)  
+> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.0.0](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.0)
+
+---
+
+
 ## ✨ TÍNH NĂNG NỔI BẬT
 
 - 🎬 **Đa dạng chất lượng Video**: Tải 1080p (Full HD), 720p (HD), 480p, 360p, 240p, 144p.
