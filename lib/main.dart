@@ -4,6 +4,7 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/home/home_screen.dart';
 import 'presentation/downloads/downloads_screen.dart';
+import 'presentation/library/library_screen.dart';
 import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 
@@ -43,6 +44,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final screens = [
       HomeScreen(onNavigateToDownloads: () => setState(() => _currentIndex = 1)),
       const DownloadsScreen(),
+      const LibraryScreen(),
     ];
 
     return Scaffold(
@@ -68,6 +70,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               icon: Icon(Icons.download_outlined),
               activeIcon: Icon(Icons.download_rounded),
               label: 'Đang tải',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.folder_outlined),
+              activeIcon: Icon(Icons.folder_rounded),
+              label: 'Thư viện',
             ),
           ],
         ),
