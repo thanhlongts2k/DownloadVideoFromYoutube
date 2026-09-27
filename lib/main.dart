@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
@@ -10,6 +12,18 @@ import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+    try {
+      await JustAudioBackground.init(
+        androidNotificationChannelId: 'com.antigravity.ytdownloader.audio',
+        androidNotificationChannelName: 'TubeX Media Playback',
+        androidNotificationOngoing: true,
+        androidNotificationIcon: 'mipmap/ic_launcher',
+      );
+    } catch (e) {
+      debugPrint('JustAudioBackground init error: $e');
+    }
+  }
   await NotificationService().init();
   await StorageService.requestStoragePermission();
   runApp(const ProviderScope(child: TubeXApp()));
