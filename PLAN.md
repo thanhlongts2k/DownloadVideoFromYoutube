@@ -4,7 +4,7 @@
 
 ---
 > ⚠️ **Yêu cầu quan trọng từ người dùng**:
-> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (`flutter build apk --release`), tạo tag git release (ví dụ `v1.0.4`) và tự động tạo GitHub Release đính kèm file `app-release.apk` lên repository `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`!
+> Sau khi hoàn tất toàn bộ các Phase, BẮT BUỘC tiến hành đóng gói APK Release (`flutter build apk --release`), tạo tag git release (ví dụ `v1.0.5`) và tự động tạo GitHub Release đính kèm file `app-release.apk` lên repository `https://github.com/thanhlongts2k/DownloadVideoFromYoutube.git`!
 ---
 
 ## 🏗️ 1. KIẾN TRÚC TỔNG THỂ (DUAL-ENGINE ARCHITECTURE)
@@ -102,12 +102,12 @@
 - [x] Bật `coreLibraryDesugaring` cho `flutter_local_notifications`.
 - [x] Biên dịch thành công APK Release: `build/app/outputs/flutter-apk/app-release.apk` (26.8 MB).
 - [x] Thiết lập GitHub Actions CI/CD workflow `.github/workflows/release.yml` tự động phát hành bản build APK khi đẩy git tag.
-- [x] Commit, tạo tag `v1.0.4` và Push lên Git.
-- [x] Tạo GitHub Release chính thức đính kèm tệp `TubeX-v1.0.4.apk`.
+- [x] Commit, tạo tag `v1.0.5` và Push lên Git.
+- [x] Tạo GitHub Release chính thức đính kèm tệp `TubeX-v1.0.5.apk`.
 
 
 
-### 🚀 PLAN PHÁT HÀNH v1.0.4 — HIGH-SPEED ENGINE, AUDIO FIX & GITHUB AUTO-UPDATE
+### 🚀 PLAN PHÁT HÀNH v1.0.5 — HIGH-SPEED ENGINE, AUDIO FIX & GITHUB AUTO-UPDATE
 
 #### 🎯 Mục tiêu:
 1. Xử lý triệt để tốc độ tải bị bóp nghẽn 12 KB/s và đứng đơ (stuck 1.3 MB / 2.1 MB) bằng `streamsClient.get()`.
@@ -133,23 +133,43 @@
   - Tự động tải tệp APK cập nhật và kích hoạt trình cài đặt hệ thống Android qua `open_filex`.
   - Thêm nút "Kiểm tra bản cập nhật" thủ công trong màn hình Cài đặt (`SettingsScreen`).
 
-- [x] **PHASE 4: Kiểm thử toàn diện, Cập nhật CHANGELOG & Đóng gói Bản Build Git v1.0.4**
+- [x] **PHASE 4: Kiểm thử toàn diện, Cập nhật CHANGELOG & Đóng gói Bản Build Git v1.0.5**
   - Chạy `flutter analyze` đạt 0 issues.
   - Viết và chạy unit tests đạt 100% pass.
   - Ghi nhận chi tiết vào `CHANGELOG.md` chuẩn Keep a Changelog.
   - Tăng phiên bản `1.0.2+3` trong `pubspec.yaml`.
   - Biên dịch APK Release `build/app/outputs/flutter-apk/app-release.apk`.
-  - Commit, gắn tag `v1.0.4`, đẩy lên Git và tạo GitHub Release đính kèm tệp `TubeX-v1.0.4.apk`.
+  - Commit, gắn tag `v1.0.5`, đẩy lên Git và tạo GitHub Release đính kèm tệp `TubeX-v1.0.5.apk`.
 
-### 🛠️ BẢN VÁ LỖI & NÂNG CẤP v1.0.4 (HOTFIX)
+### 🛠️ BẢN VÁ LỖI & NÂNG CẤP v1.0.5 (HOTFIX)
 - [x] **Fix lỗi Video không có âm thanh**: Tích hợp Android Native `MediaMuxer` ghép luồng Video MP4 (H.264) + Audio AAC (`itag 140`) trực tiếp trên thiết bị (Engine A).
 - [x] **Fix lỗi lộ chuỗi mã nội suy**: Xóa bỏ các ký tự escape `\$` trong `downloads_screen.dart`.
 - [x] **Unit Tests**: Bổ sung `test/muxer_test.dart` đạt 100% test pass.
-- [x] **Phát hành bản build v1.0.4**: Đóng gói APK Release mới và phát hành trên GitHub Release.
+- [x] **Phát hành bản build v1.0.5**: Đóng gói APK Release mới và phát hành trên GitHub Release.
+
+
+### 🎵 PHASE 6: PHÁT ĐA PHƯƠNG TIỆN TRONG NỀN (BACKGROUND MEDIA PLAYER) [v1.0.5]
+- [x] **Cấu hình Android Native**:
+  - Đăng ký `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK` và `AudioService` trong `AndroidManifest.xml`.
+  - Kế thừa `AudioServiceActivity` trong `MainActivity.kt`.
+- [x] **Core Player Engine (`PlayerService`)**:
+  - Tích hợp `just_audio` và `just_audio_background` chuẩn ExoPlayer.
+  - Hỗ trợ phát luồng âm thanh của cả video (.mp4, .mkv) và audio (.mp3, .m4a) khi tắt màn hình.
+  - Quản lý danh sách phát nối tiếp (Playlist Queue), Audio Focus và phím tai nghe Bluetooth.
+  - Tích hợp Sleep Timer (hẹn giờ tắt nhạc) và điều chỉnh tốc độ phát (0.5x - 2.0x).
+- [x] **In-App Liquid Glass UI**:
+  - Xây dựng `MiniPlayer` kính mờ gắn phía trên thanh điều hướng Bottom Navigation.
+  - Xây dựng `FullPlayerSheet` với đĩa xoay Vinyl Neon, thanh Scrubber, nút tua 10s và bộ chọn tốc độ/hẹn giờ.
+- [x] **Tích hợp Thư viện Media (`LibraryScreen`)**:
+  - Chạm trực tiếp để nghe trong nền, hiệu ứng equalizer phát sáng trên thẻ bài đang phát.
+  - Menu tùy chọn nhanh: phát trong nền, mở app ngoài, chia sẻ và xóa.
+- [x] **Đóng gói & Phát hành v1.0.5**:
+  - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
+  - Biên dịch APK Release `TubeX-v1.0.5.apk` và phát hành lên GitHub Release.
 
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
-- 📦 **GitHub Release**: [v1.0.4 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.4)
-- 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.4.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.4/TubeX-v1.0.4.apk)
+- 📦 **GitHub Release**: [v1.0.5 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.5)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.5.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.5/TubeX-v1.0.5.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, biên dịch Release thành công 100%.
 
 

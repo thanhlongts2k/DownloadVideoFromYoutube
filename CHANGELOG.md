@@ -2,6 +2,34 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.5] - 2026-09-27
+
+### [Added]
+- **Tính năng Phát Đa Phương Tiện Trong Nền (Background Media Player)**:
+  - Hỗ trợ phát liên tục cả tệp **Âm thanh (.mp3, .m4a)** lẫn tệp **Video (.mp4)** khi người dùng chuyển sang ứng dụng khác hoặc **khóa màn hình điện thoại (Screen-off playback)**.
+  - Tự động ngắt render khung hình video khi ở chế độ nền giúp **tiết kiệm pin tối đa** (giảm 70-80% hao pin so với phát video thường).
+- **Hệ thống điều khiển Media Notification & Màn hình khóa (Lockscreen Controls)**:
+  - Tích hợp chuẩn `MediaSessionCompat` của Android: hiển thị trình phát đa phương tiện đầy đủ trên thanh thông báo hệ thống và màn hình khóa.
+  - Điều khiển linh hoạt: Play/Pause, Tua nhanh/lùi 10s, Next/Prev bài hát.
+  - Tương thích 100% với phím bấm tai nghe có dây và tai nghe Bluetooth.
+- **Giao diện Liquid Glass Mini-Player thanh mảnh**:
+  - Mini-Player phong cách kính mờ Liquid Glass viền Neon cyan/magenta gắn cố định phía trên Bottom Navigation bar, hiển thị tiến trình live và chuyển bài tiện lợi.
+- **Trình phát mở rộng Full-Screen Glass Player cao cấp**:
+  - Đĩa than Neon Vinyl Disc xoay 3D theo nhịp nhạc với ánh sáng hào quang Liquid Glass.
+  - Thanh tua Scrubber hiển thị thời gian phát tức thì.
+  - Tùy chỉnh tốc độ phát linh hoạt: `0.5x`, `0.75x`, `1.0x`, `1.25x`, `1.5x`, `2.0x`.
+  - Chế độ lặp: Tắt lặp, Lặp toàn bộ danh sách, Lặp 1 bài.
+  - **Hẹn giờ tắt nhạc (Sleep Timer)**: 15p, 30p, 45p, 60p hoặc hết bài hát hiện tại.
+- **Nâng cấp Thư viện (LibraryScreen)**:
+  - Chạm trực tiếp vào bất kỳ bài hát hoặc video nào để phát ngay trong nền.
+  - Tự động phát nối tiếp các bài trong thư mục (Continuous Playlist Queue).
+  - Thẻ media đang phát hiển thị sóng âm neon equalizer trực quan.
+
+### [Changed]
+- Tăng phiên bản `versionCode: 6` và `versionName: 1.0.5`.
+
+---
+
 ## [v1.0.4] - 2026-09-26
 
 ### [Fixed]
