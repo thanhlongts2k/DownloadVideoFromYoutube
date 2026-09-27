@@ -1,16 +1,16 @@
-import '../player/video_player_screen.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/liquid_glass_card.dart';
 import '../../services/player_service.dart';
 import '../../services/storage_service.dart';
 import '../player/full_player_sheet.dart';
+import '../player/video_player_screen.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -22,7 +22,8 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<FileSystemEntity> _allFiles = [];
+  List<File> _allFiles = [];
+  Map<String, FileStat> _fileStats = {};
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -41,21 +42,50 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Future<void> _loadFiles() async {
     setState(() => _isLoading = true);
-    final files = <FileSystemEntity>[];
+    final files = <File>[];
+    final stats = <String, FileStat>{};
+
     try {
       final videoDir = await StorageService.getDownloadDirectory(isAudio: false);
       final audioDir = await StorageService.getDownloadDirectory(isAudio: true);
 
-      if (await videoDir.exists()) {
-        files.addAll(videoDir.listSync().whereType<File>());
+      // 1. Tự động dọn dẹp các tệp rác (.tmp, .raw, .part) còn sót lại từ các lần tải cũ
+      for (final dir in [videoDir, audioDir]) {
+        if (await dir.exists()) {
+          for (final entity in dir.listSync()) {
+            if (entity is File) {
+              final name = entity.uri.pathSegments.last.toLowerCase();
+              if (name.contains('.tmp') || name.contains('.raw') || name.contains('.part') || name.startsWith('.')) {
+                try { entity.deleteSync(); } catch (_) {}
+              }
+            }
+          }
+        }
       }
-      if (await audioDir.exists()) {
-        files.addAll(audioDir.listSync().whereType<File>());
+
+      // 2. Chỉ nạp các tệp media hoàn chỉnh (.mp4, .mp3, .m4a, .mkv)
+      for (final dir in [videoDir, audioDir]) {
+        if (await dir.exists()) {
+          for (final entity in dir.listSync()) {
+            if (entity is File) {
+              final name = entity.uri.pathSegments.last.toLowerCase();
+              if (name.startsWith('.')) continue;
+              if (name.endsWith('.mp4') || name.endsWith('.mp3') || name.endsWith('.m4a') || name.endsWith('.mkv')) {
+                if (!name.contains('.tmp') && !name.contains('.raw') && !name.contains('.part')) {
+                  files.add(entity);
+                  try {
+                    stats[entity.path] = entity.statSync();
+                  } catch (_) {}
+                }
+              }
+            }
+          }
+        }
       }
 
       files.sort((a, b) {
-        final aTime = a.statSync().modified;
-        final bTime = b.statSync().modified;
+        final aTime = stats[a.path]?.modified ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = stats[b.path]?.modified ?? DateTime.fromMillisecondsSinceEpoch(0);
         return bTime.compareTo(aTime);
       });
     } catch (_) {}
@@ -63,6 +93,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     if (mounted) {
       setState(() {
         _allFiles = files;
+        _fileStats = stats;
         _isLoading = false;
       });
     }
@@ -109,12 +140,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     if (confirm == true) {
       try {
-        final player = ref.read(playerServiceProvider);
-        if (player.currentTrack?.filePath == file.path) {
-          await player.stop();
+        final playerService = ref.read(playerServiceProvider);
+        if (playerService.currentTrack?.filePath == file.path) {
+          await playerService.stop();
         }
         await file.delete();
-        _loadFiles();
+        await _loadFiles();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -158,7 +189,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       return name.contains(_searchQuery.toLowerCase());
     }).toList();
 
-    final videoFiles = filtered.where((f) => f.path.endsWith('.mp4')).toList();
+    final videoFiles = filtered.where((f) => f.path.endsWith('.mp4') || f.path.endsWith('.mkv')).toList();
     final audioFiles = filtered.where((f) => f.path.endsWith('.mp3') || f.path.endsWith('.m4a')).toList();
 
     return Scaffold(
@@ -178,36 +209,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             children: [
               // Search input
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.glassBorder),
-                  ),
-                  child: TextField(
-                    style: AppTypography.bodyMedium,
-                    decoration: InputDecoration(
-                      hintText: 'Tìm kiếm file đã tải...',
-                      hintStyle: AppTypography.bodySmall,
-                      prefixIcon: const Icon(Icons.search, color: Colors.white38, size: 20),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: TextField(
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                  style: AppTypography.bodyMedium,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm file đã tải...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.06),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                     ),
-                    onChanged: (val) => setState(() => _searchQuery = val),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              // Tab bar
               TabBar(
                 controller: _tabController,
                 indicatorColor: AppColors.primary,
-                indicatorWeight: 3,
                 labelColor: Colors.white,
-                unselectedLabelColor: AppColors.textMuted,
-                labelStyle: AppTypography.titleSmall.copyWith(fontSize: 13),
+                unselectedLabelColor: Colors.white54,
                 tabs: [
                   Tab(text: 'Tất cả (${filtered.length})'),
                   Tab(text: 'Video (${videoFiles.length})'),
@@ -231,22 +262,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     );
   }
 
-  Widget _buildFileList(List<FileSystemEntity> list) {
+  Widget _buildFileList(List<File> list) {
     if (list.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.folder_open_rounded, color: Colors.white24, size: 48),
-            ),
-            const SizedBox(height: 14),
-            Text('Chưa có file nào', style: AppTypography.titleSmall),
+            Icon(Icons.folder_open_rounded, size: 64, color: Colors.white.withOpacity(0.2)),
+            const SizedBox(height: 16),
+            Text('Chưa có file nào', style: AppTypography.titleMedium.copyWith(color: Colors.white54)),
             const SizedBox(height: 4),
             Text('Các video/audio tải xong sẽ xuất hiện ở đây', style: AppTypography.bodySmall),
           ],
@@ -254,20 +278,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
 
-    final typedFiles = list.whereType<File>().toList();
     final playerService = ref.watch(playerServiceProvider);
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: typedFiles.length,
+      itemCount: list.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        final entity = typedFiles[index];
+        final entity = list[index];
         final fileName = entity.path.split(Platform.pathSeparator).last;
         final isAudio = fileName.endsWith('.mp3') || fileName.endsWith('.m4a');
-        final stat = entity.statSync();
-        final sizeStr = _formatBytes(stat.size);
-        final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(stat.modified);
+        final stat = _fileStats[entity.path];
+        final sizeStr = stat != null ? _formatBytes(stat.size) : '--';
+        final dateStr = stat != null ? DateFormat('dd/MM/yyyy HH:mm').format(stat.modified) : '--';
 
         final isCurrentPlaying = playerService.currentTrack?.filePath == entity.path;
 
@@ -278,7 +301,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             if (playerService.currentTrack?.filePath == entity.path) {
               FullPlayerSheet.show(context);
             } else {
-              _playFileInBackground(typedFiles, index);
+              _playFileInBackground(list, index);
               FullPlayerSheet.show(context);
             }
           },
@@ -343,7 +366,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   if (isCurrentPlaying) {
                     playerService.togglePlay();
                   } else {
-                    _playFileInBackground(typedFiles, index);
+                    _playFileInBackground(list, index);
                   }
                 },
               ),
@@ -379,7 +402,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       children: [
                         Icon(Icons.open_in_new, color: Colors.white70, size: 18),
                         SizedBox(width: 8),
-                        Text('Mở bằng app ngoài', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        Text('Mở bằng app khác', style: TextStyle(color: Colors.white, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -387,9 +410,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                     value: 'share',
                     child: Row(
                       children: [
-                        Icon(Icons.share_outlined, color: Colors.white70, size: 18),
+                        Icon(Icons.share, color: Colors.white70, size: 18),
                         SizedBox(width: 8),
-                        Text('Chia sẻ file', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        Text('Chia sẻ', style: TextStyle(color: Colors.white, fontSize: 13)),
                       ],
                     ),
                   ),

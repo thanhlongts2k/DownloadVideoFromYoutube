@@ -3,20 +3,15 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import '../models/download_task.dart';
 import '../models/download_format.dart';
+import '../models/download_task.dart';
 import '../models/video_metadata.dart';
-import 'storage_service.dart';
-import 'notification_service.dart';
 import 'native_muxer.dart';
+import 'notification_service.dart';
+import 'storage_service.dart';
 
-final downloadManagerProvider =
-    StateNotifierProvider<DownloadManager, List<DownloadTask>>((ref) {
-  return DownloadManager();
-});
-
-class DownloadManager extends StateNotifier<List<DownloadTask>> {
-  DownloadManager() : super([]);
+class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
+  DownloadManagerNotifier() : super([]);
 
   final Dio _dio = Dio();
   final Map<String, CancelToken> _cancelTokens = {};
@@ -35,6 +30,16 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
     final safeTitle = StorageService.sanitizeFilename(metadata.title);
     final targetPath =
         '${targetDir.path}/${safeTitle}_${format.resolution}.${format.ext}';
+
+    // Isolated hidden temporary directory .tmp to prevent partial files from cluttering user library
+    final tempDir = Directory('${targetDir.path}/.tmp');
+    if (!await tempDir.exists()) {
+      await tempDir.create(recursive: true);
+    }
+    final safeTaskId = taskId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    final videoTempPath = '${tempDir.path}/${safeTaskId}_v.raw';
+    final audioTempPath = '${tempDir.path}/${safeTaskId}_a.raw';
+    final muxOutputPath = '${tempDir.path}/${safeTaskId}_out.mp4';
 
     final task = DownloadTask(
       id: taskId,
@@ -57,6 +62,8 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
 
     int lastBytes = 0;
     DateTime lastTime = DateTime.now();
+    DateTime lastUiTime = DateTime.now();
+    DateTime lastNotifTime = DateTime.now();
     final notifId = taskId.hashCode.abs() % 10000;
 
     String formatSpeed(int bytesDelta, int elapsedMs) {
@@ -69,8 +76,6 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
     }
 
     try {
-      // KIỂM TRA CHẾ ĐỘ ENGINE:
-      // Nếu có videoId + (videoTag hoặc audioTag) => Sử dụng Engine A siêu tốc qua youtube_explode_dart
       final hasNativeTags = format.videoId != null &&
           (format.videoTag != null || format.audioTag != null);
 
@@ -81,16 +86,16 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
               await yt.videos.streamsClient.getManifest(format.videoId!);
 
           if (format.needsMuxing) {
-            // VIDEO ONLY + AUDIO => Ghép bằng Native MediaMuxer
+            // VIDEO ONLY + AUDIO => Ghép bằng Native MediaMuxer siêu tốc
             final videoStreamInfo =
                 manifest.streams.firstWhere((s) => s.tag == format.videoTag);
             final audioStreamInfo =
                 manifest.streams.firstWhere((s) => s.tag == format.audioTag);
 
-            final videoTempPath = '$targetPath.video.tmp';
-            final audioTempPath = '$targetPath.audio.tmp';
             final vFile = File(videoTempPath);
             final aFile = File(audioTempPath);
+            if (await vFile.exists()) await vFile.delete();
+            if (await aFile.exists()) await aFile.delete();
 
             final totalSize =
                 videoStreamInfo.size.totalBytes + audioStreamInfo.size.totalBytes;
@@ -99,7 +104,7 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
             int videoReceived = 0;
             final vSink = vFile.openWrite();
 
-            // 1. Tải Video stream siêu tốc
+            // 1. Tải Video stream
             final vStream = yt.videos.streamsClient.get(videoStreamInfo);
             await for (final chunk in vStream) {
               if (_activeCancellations[taskId] == true) {
@@ -110,32 +115,37 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
               videoReceived += chunk.length;
 
               final now = DateTime.now();
-              final elapsed = now.difference(lastTime).inMilliseconds;
-              String speed = '';
-              if (elapsed >= 500) {
-                speed = formatSpeed(videoReceived - lastBytes, elapsed);
+              final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+              final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+
+              if (elapsedUi >= 300) {
+                final speed = formatSpeed(videoReceived - lastBytes, now.difference(lastTime).inMilliseconds);
                 lastBytes = videoReceived;
                 lastTime = now;
+                lastUiTime = now;
+                final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
+                _updateTask(taskId, (t) {
+                  t.downloadedBytes = videoReceived;
+                  t.progress = progress;
+                  if (speed.isNotEmpty) t.speedStr = speed;
+                });
               }
 
-              final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
-              _updateTask(taskId, (t) {
-                t.downloadedBytes = videoReceived;
-                t.progress = progress;
-                if (speed.isNotEmpty) t.speedStr = speed;
-              });
-
-              NotificationService().showDownloadProgress(
-                id: notifId,
-                title: metadata.title,
-                progress: (progress * 100).round(),
-                speedStr: tSpeed(task),
-              );
+              if (elapsedNotif >= 1000) {
+                lastNotifTime = now;
+                final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
+                NotificationService().showDownloadProgress(
+                  id: notifId,
+                  title: metadata.title,
+                  progress: (progress * 100).round(),
+                  speedStr: tSpeed(task),
+                );
+              }
             }
             await vSink.flush();
             await vSink.close();
 
-            // 2. Tải Audio stream siêu tốc
+            // 2. Tải Audio stream
             lastBytes = 0;
             lastTime = DateTime.now();
             int audioReceived = 0;
@@ -151,49 +161,66 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
               audioReceived += chunk.length;
 
               final now = DateTime.now();
-              final elapsed = now.difference(lastTime).inMilliseconds;
-              String speed = '';
-              if (elapsed >= 500) {
-                speed = formatSpeed(audioReceived - lastBytes, elapsed);
-                lastBytes = audioReceived;
-                lastTime = now;
-              }
+              final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+              final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
 
               final currentDownloaded = videoReceived + audioReceived;
               final progress = (currentDownloaded / totalSize).clamp(0.0, 0.98);
-              _updateTask(taskId, (t) {
-                t.downloadedBytes = currentDownloaded;
-                t.progress = progress;
-                if (speed.isNotEmpty) t.speedStr = speed;
-              });
 
-              NotificationService().showDownloadProgress(
-                id: notifId,
-                title: metadata.title,
-                progress: (progress * 100).round(),
-                speedStr: tSpeed(task),
-              );
+              if (elapsedUi >= 300) {
+                final speed = formatSpeed(audioReceived - lastBytes, now.difference(lastTime).inMilliseconds);
+                lastBytes = audioReceived;
+                lastTime = now;
+                lastUiTime = now;
+                _updateTask(taskId, (t) {
+                  t.downloadedBytes = currentDownloaded;
+                  t.progress = progress;
+                  if (speed.isNotEmpty) t.speedStr = speed;
+                });
+              }
+
+              if (elapsedNotif >= 1000) {
+                lastNotifTime = now;
+                NotificationService().showDownloadProgress(
+                  id: notifId,
+                  title: metadata.title,
+                  progress: (progress * 100).round(),
+                  speedStr: tSpeed(task),
+                );
+              }
             }
             await aSink.flush();
             await aSink.close();
 
-            // 3. Ghép Video + Audio thành file MP4 chuẩn hoàn chỉnh
+            // 3. Ghép Video + Audio thành file MP4 chuẩn hoàn chỉnh bằng Native MediaMuxer siêu tốc
             _updateTask(taskId, (t) => t.speedStr = 'Đang ghép âm thanh...');
             final muxSuccess = await NativeMuxer.mux(
               videoPath: videoTempPath,
               audioPath: audioTempPath,
-              outputPath: targetPath,
+              outputPath: muxOutputPath,
             );
 
-            if (muxSuccess && await File(targetPath).exists()) {
+            final muxFile = File(muxOutputPath);
+            if (muxSuccess && await muxFile.exists() && (await muxFile.length() > 0)) {
+              final finalFile = File(targetPath);
+              if (await finalFile.exists()) await finalFile.delete();
+              await muxFile.rename(targetPath);
+
+              // Xóa sạch file tạm trong .tmp/
               try { if (await vFile.exists()) await vFile.delete(); } catch (_) {}
               try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
             } else {
-              if (await vFile.exists()) await vFile.rename(targetPath);
+              // Dự phòng: nếu muxing có vấn đề, cứu luồng video thành phẩm
+              if (await vFile.exists()) {
+                final finalFile = File(targetPath);
+                if (await finalFile.exists()) await finalFile.delete();
+                await vFile.rename(targetPath);
+              }
               try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
+              try { if (await muxFile.exists()) await muxFile.delete(); } catch (_) {}
             }
           } else {
-            // SINGLE STREAM (Audio MP3/M4A hoặc Video 360p có sẵn audio)
+            // SINGLE STREAM (Audio MP3/M4A hoặc Video có sẵn audio)
             final targetTag = format.videoTag ?? format.audioTag!;
             final streamInfo =
                 manifest.streams.firstWhere((s) => s.tag == targetTag);
@@ -214,28 +241,33 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
               received += chunk.length;
 
               final now = DateTime.now();
-              final elapsed = now.difference(lastTime).inMilliseconds;
-              String speed = '';
-              if (elapsed >= 500) {
-                speed = formatSpeed(received - lastBytes, elapsed);
-                lastBytes = received;
-                lastTime = now;
-              }
+              final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+              final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
 
               final progress =
                   totalExpected > 0 ? (received / totalExpected).clamp(0.0, 1.0) : 0.0;
-              _updateTask(taskId, (t) {
-                t.downloadedBytes = received;
-                t.progress = progress;
-                if (speed.isNotEmpty) t.speedStr = speed;
-              });
 
-              NotificationService().showDownloadProgress(
-                id: notifId,
-                title: metadata.title,
-                progress: (progress * 100).round(),
-                speedStr: tSpeed(task),
-              );
+              if (elapsedUi >= 300) {
+                final speed = formatSpeed(received - lastBytes, now.difference(lastTime).inMilliseconds);
+                lastBytes = received;
+                lastTime = now;
+                lastUiTime = now;
+                _updateTask(taskId, (t) {
+                  t.downloadedBytes = received;
+                  t.progress = progress;
+                  if (speed.isNotEmpty) t.speedStr = speed;
+                });
+              }
+
+              if (elapsedNotif >= 1000) {
+                lastNotifTime = now;
+                NotificationService().showDownloadProgress(
+                  id: notifId,
+                  title: metadata.title,
+                  progress: (progress * 100).round(),
+                  speedStr: tSpeed(task),
+                );
+              }
             }
             await sink.flush();
             await sink.close();
@@ -262,32 +294,33 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
           cancelToken: cancelToken,
           onReceiveProgress: (received, total) {
             final now = DateTime.now();
-            final elapsed = now.difference(lastTime).inMilliseconds;
-            String speed = '';
-            if (elapsed >= 500) {
-              speed = formatSpeed(received - lastBytes, elapsed);
+            final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+            final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+
+            final progress = total > 0 ? (received / total).clamp(0.0, 1.0) : 0.0;
+
+            if (elapsedUi >= 300) {
+              final speed = formatSpeed(received - lastBytes, now.difference(lastTime).inMilliseconds);
               lastBytes = received;
               lastTime = now;
+              lastUiTime = now;
+              _updateTask(taskId, (t) {
+                t.downloadedBytes = received;
+                t.totalBytes = total;
+                t.progress = progress;
+                if (speed.isNotEmpty) t.speedStr = speed;
+              });
             }
 
-            final effectiveTotal =
-                total > 0 ? total : (task.totalBytes > 0 ? task.totalBytes : received);
-            final progress = effectiveTotal > 0
-                ? (received / effectiveTotal).clamp(0.0, 1.0)
-                : 0.0;
-
-            _updateTask(taskId, (t) {
-              t.downloadedBytes = received;
-              t.progress = progress;
-              if (speed.isNotEmpty) t.speedStr = speed;
-            });
-
-            NotificationService().showDownloadProgress(
-              id: notifId,
-              title: metadata.title,
-              progress: (progress * 100).round(),
-              speedStr: tSpeed(task),
-            );
+            if (elapsedNotif >= 1000) {
+              lastNotifTime = now;
+              NotificationService().showDownloadProgress(
+                id: notifId,
+                title: metadata.title,
+                progress: (progress * 100).round(),
+                speedStr: tSpeed(task),
+              );
+            }
           },
         );
       }
@@ -295,9 +328,7 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
       _updateTask(taskId, (t) {
         t.status = TaskStatus.completed;
         t.progress = 1.0;
-        t.downloadedBytes = t.totalBytes > 0 ? t.totalBytes : t.downloadedBytes;
         t.speedStr = '';
-        t.completedAt = DateTime.now();
       });
 
       NotificationService().showDownloadComplete(
@@ -306,15 +337,22 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
         filePath: targetPath,
       );
     } catch (e) {
-      if (_activeCancellations[taskId] == true || cancelToken.isCancelled) {
-        _updateTask(taskId, (t) => t.status = TaskStatus.paused);
+      if (_activeCancellations[taskId] == true) {
+        _updateTask(taskId, (t) {
+          t.status = TaskStatus.failed;
+          t.speedStr = 'Đã hủy';
+        });
       } else {
         _updateTask(taskId, (t) {
           t.status = TaskStatus.failed;
-          t.errorMessage = e.toString();
+          t.speedStr = 'Lỗi tải: ${e.toString().split('\n').first}';
         });
       }
-      NotificationService().cancelNotification(notifId);
+
+      // Cleanup on error
+      try { if (await File(videoTempPath).exists()) await File(videoTempPath).delete(); } catch (_) {}
+      try { if (await File(audioTempPath).exists()) await File(audioTempPath).delete(); } catch (_) {}
+      try { if (await File(muxOutputPath).exists()) await File(muxOutputPath).delete(); } catch (_) {}
     } finally {
       _cancelTokens.remove(taskId);
       _activeCancellations.remove(taskId);
@@ -323,30 +361,39 @@ class DownloadManager extends StateNotifier<List<DownloadTask>> {
 
   void cancelDownload(String taskId) {
     _activeCancellations[taskId] = true;
-    if (_cancelTokens.containsKey(taskId)) {
-      _cancelTokens[taskId]?.cancel();
-    }
+    _cancelTokens[taskId]?.cancel();
+    _updateTask(taskId, (t) {
+      t.status = TaskStatus.failed;
+      t.speedStr = 'Đã hủy';
+    });
   }
 
-  void clearCompleted() {
-    state = state.where((t) => !t.isCompleted).toList();
+  void retryDownload(DownloadTask task) {}
+
+  void removeTask(String taskId) {
+    state = state.where((t) => t.id != taskId).toList();
   }
 
-  void _updateTask(String taskId, void Function(DownloadTask) updater) {
+  void _updateTask(String id, void Function(DownloadTask) updater) {
     state = [
       for (final t in state)
-        if (t.id == taskId) ...[
-          t..apply(updater)
-        ] else
+        if (t.id == id)
+          (() {
+            updater(t);
+            return t;
+          })()
+        else
           t,
     ];
   }
 
-  String tSpeed(DownloadTask t) => t.speedStr.isNotEmpty ? t.speedStr : '';
-}
-
-extension on DownloadTask {
-  void apply(void Function(DownloadTask) updater) {
-    updater(this);
+  String tSpeed(DownloadTask t) {
+    final current = state.firstWhere((item) => item.id == t.id, orElse: () => t);
+    return current.speedStr;
   }
 }
+
+final downloadManagerProvider =
+    StateNotifierProvider<DownloadManagerNotifier, List<DownloadTask>>((ref) {
+  return DownloadManagerNotifier();
+});
