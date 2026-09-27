@@ -1,12 +1,13 @@
-import 'storage_service.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/constants/app_config.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../core/widgets/glass_button.dart';
+import 'storage_service.dart';
 
 class UpdateInfo {
   final String tagName;
@@ -33,8 +34,8 @@ class UpdateInfo {
 
 class UpdateService {
   static final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 15),
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 25),
     headers: {'User-Agent': 'TubeX-App'},
   ));
 
@@ -52,7 +53,7 @@ class UpdateService {
           String apkUrl = '';
           int apkSize = 0;
 
-          // Prioritize branded TubeX/YouTubex APK over generic build artifacts
+          // Prioritize branded TubeX APK over generic assets
           for (final asset in assets) {
             final name = (asset['name'] as String? ?? '').toLowerCase();
             if (name.endsWith('.apk') &&
@@ -161,29 +162,148 @@ class _UpdateDialogState extends State<_UpdateDialog> {
   bool _isDownloading = false;
   double _progress = 0.0;
   String _downloadSpeed = '';
+  String _statusText = '';
   String? _errorMessage;
+
+  Future<void> _openInBrowser() async {
+    try {
+      final uri = Uri.parse(widget.update.apkDownloadUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể mở trình duyệt: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _startDownload() async {
     setState(() {
       _isDownloading = true;
       _errorMessage = null;
-      _progress = 0.0;
+      _statusText = 'Đang khởi tạo kết nối...';
+      _downloadSpeed = '';
     });
 
-    try {
-      final downloadDir = await StorageService.getDownloadDirectory(isAudio: false);
-      final apkPath =
-          '${downloadDir.path}/YouTubex_${widget.update.tagName}.apk';
-      final file = File(apkPath);
-      if (await file.exists()) await file.delete();
+    final downloadDir = await StorageService.getDownloadDirectory(isAudio: false);
+    final apkPath = '${downloadDir.path}/TubeX_${widget.update.tagName}.apk';
+    final partPath = '$apkPath.part';
+    final finalFile = File(apkPath);
+    final partFile = File(partPath);
 
-      int lastBytes = 0;
-      DateTime lastTime = DateTime.now();
+    int totalExpected = widget.update.apkSize;
 
-      await Dio().download(
-        widget.update.apkDownloadUrl,
-        apkPath,
-        onReceiveProgress: (received, total) {
+    // Check if full APK already exists
+    if (await finalFile.exists()) {
+      final existingSize = await finalFile.length();
+      if (totalExpected > 0 && existingSize >= totalExpected) {
+        if (mounted) {
+          Navigator.of(context).pop();
+          await OpenFilex.open(
+            apkPath,
+            type: 'application/vnd.android.package-archive',
+          );
+        }
+        return;
+      }
+    }
+
+    const int maxRetries = 5;
+    int attempt = 0;
+    bool success = false;
+
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 25),
+      receiveTimeout: const Duration(seconds: 45),
+      sendTimeout: const Duration(seconds: 25),
+      headers: {'User-Agent': 'TubeX-App'},
+    ));
+
+    while (attempt < maxRetries && !success) {
+      int currentExisting = 0;
+      if (await partFile.exists()) {
+        currentExisting = await partFile.length();
+      }
+
+      if (totalExpected > 0 && currentExisting >= totalExpected) {
+        if (await finalFile.exists()) await finalFile.delete();
+        await partFile.rename(apkPath);
+        success = true;
+        break;
+      }
+
+      attempt++;
+      IOSink? sink;
+
+      try {
+        final Map<String, dynamic> headers = {};
+        if (currentExisting > 0) {
+          headers['Range'] = 'bytes=$currentExisting-';
+          if (mounted) {
+            setState(() {
+              _statusText =
+                  'Nối file từ ${(currentExisting / (1024 * 1024)).toStringAsFixed(1)} MB (Lần $attempt/$maxRetries)...';
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _statusText = attempt > 1
+                  ? 'Thử lại lần $attempt/$maxRetries...'
+                  : 'Đang kết nối tới máy chủ GitHub...';
+            });
+          }
+        }
+
+        final response = await dio.get<ResponseBody>(
+          widget.update.apkDownloadUrl,
+          options: Options(
+            responseType: ResponseType.stream,
+            headers: headers,
+            followRedirects: true,
+            maxRedirects: 5,
+            validateStatus: (status) =>
+                status != null && (status == 200 || status == 206 || status == 416),
+          ),
+        );
+
+        if (response.statusCode == 416) {
+          if (await finalFile.exists()) await finalFile.delete();
+          await partFile.rename(apkPath);
+          success = true;
+          break;
+        }
+
+        if (response.statusCode == 206) {
+          final cr = response.headers.value('content-range');
+          if (cr != null && cr.contains('/')) {
+            final t = int.tryParse(cr.split('/').last.trim());
+            if (t != null && t > 0) totalExpected = t;
+          }
+          sink = partFile.openWrite(mode: FileMode.append);
+        } else {
+          currentExisting = 0;
+          final cl = response.headers.value('content-length');
+          if (cl != null) {
+            final t = int.tryParse(cl.trim());
+            if (t != null && t > 0) totalExpected = t;
+          }
+          sink = partFile.openWrite(mode: FileMode.write);
+        }
+
+        int received = currentExisting;
+        int lastBytes = received;
+        DateTime lastTime = DateTime.now();
+
+        await for (final chunk in response.data!.stream) {
+          sink.add(chunk);
+          received += chunk.length;
+
           final now = DateTime.now();
           final elapsed = now.difference(lastTime).inMilliseconds;
           if (elapsed >= 500) {
@@ -201,12 +321,61 @@ class _UpdateDialogState extends State<_UpdateDialog> {
 
           if (mounted) {
             setState(() {
-              _progress = total > 0 ? (received / total).clamp(0.0, 1.0) : 0.0;
+              _progress = totalExpected > 0
+                  ? (received / totalExpected).clamp(0.0, 1.0)
+                  : 0.0;
+              final recMB = (received / (1024 * 1024)).toStringAsFixed(1);
+              final totMB = totalExpected > 0
+                  ? (totalExpected / (1024 * 1024)).toStringAsFixed(1)
+                  : '--';
+              _statusText = 'Đang tải: $recMB / $totMB MB';
             });
           }
-        },
-      );
+        }
 
+        await sink.flush();
+        await sink.close();
+        sink = null;
+
+        final finalDownloaded = await partFile.length();
+        if (totalExpected <= 0 || finalDownloaded >= totalExpected) {
+          if (await finalFile.exists()) await finalFile.delete();
+          await partFile.rename(apkPath);
+          success = true;
+          break;
+        }
+      } catch (err) {
+        if (sink != null) {
+          try {
+            await sink.flush();
+            await sink.close();
+          } catch (_) {}
+          sink = null;
+        }
+
+        if (await partFile.exists()) {
+          final len = await partFile.length();
+          if (totalExpected > 0 && len >= totalExpected) {
+            if (await finalFile.exists()) await finalFile.delete();
+            await partFile.rename(apkPath);
+            success = true;
+            break;
+          }
+        }
+
+        if (attempt < maxRetries) {
+          if (mounted) {
+            setState(() {
+              _statusText =
+                  'Mạng chập chờn, tự động kết nối lại sau 2s (Lần $attempt/$maxRetries)...';
+            });
+          }
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      }
+    }
+
+    if (success) {
       if (mounted) {
         Navigator.of(context).pop();
         final result = await OpenFilex.open(
@@ -219,11 +388,12 @@ class _UpdateDialogState extends State<_UpdateDialog> {
           );
         }
       }
-    } catch (e) {
+    } else {
       if (mounted) {
         setState(() {
           _isDownloading = false;
-          _errorMessage = 'Tải thất bại: $e';
+          _errorMessage =
+              'Kết nối mạng bị ngắt quãng hoặc máy chủ GitHub CDN đóng kết nối.\nBạn có thể nhấn "Thử lại" để tải tiếp tục, hoặc "Tải bằng trình duyệt".';
         });
       }
     }
@@ -308,9 +478,30 @@ class _UpdateDialogState extends State<_UpdateDialog> {
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                style: AppTypography.bodySmall.copyWith(color: Colors.redAccent),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: Colors.redAccent, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: const Color(0xFFFF8A80),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 20),
@@ -328,22 +519,30 @@ class _UpdateDialogState extends State<_UpdateDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Đang tải... ${(_progress * 100).toStringAsFixed(1)}%',
-                    style: AppTypography.bodySmall,
-                  ),
-                  Text(
-                    _downloadSpeed,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.secondary,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      _statusText.isNotEmpty ? _statusText : 'Đang tải...',
+                      style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  if (_downloadSpeed.isNotEmpty)
+                    Text(
+                      _downloadSpeed,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                 ],
               ),
             ] else ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -352,10 +551,20 @@ class _UpdateDialogState extends State<_UpdateDialog> {
                       style: AppTypography.bodyMedium.copyWith(color: Colors.white54),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.secondary,
+                      side: BorderSide(color: AppColors.secondary.withOpacity(0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                    label: const Text('Trình duyệt'),
+                    onPressed: _openInBrowser,
+                  ),
                   GlassButton(
-                    label: 'Cập nhật ngay',
-                    icon: Icons.download_rounded,
+                    label: _errorMessage != null ? 'Thử lại' : 'Cập nhật ngay',
+                    icon: _errorMessage != null ? Icons.refresh_rounded : Icons.download_rounded,
                     onPressed: _startDownload,
                   ),
                 ],

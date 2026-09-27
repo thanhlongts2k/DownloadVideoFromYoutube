@@ -181,7 +181,25 @@
   - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
   - Biên dịch APK Release `TubeX-v1.0.6.apk` và phát hành lên GitHub Release.
 
+### 🛡️ PHASE 8: CƠ CHẾ NỐI FILE RESUMABLE & DỰ PHÒNG TRÌNH DUYỆT [v1.0.7]
+- [x] **Xử lý triệt để lỗi ngắt socket GitHub CDN (`Connection closed while receiving data`)**:
+  - Hỗ trợ HTTP `Range: bytes=X-` chunked streaming với `Dio` và ghi tiếp `FileMode.append`.
+  - Tự động retry tối đa 5 lần, tiếp tục từ mốc MB đã tải được thay vì tải lại từ 0%.
+- [x] **Nút dự phòng "Tải bằng trình duyệt" (`url_launcher`)**:
+  - Kích hoạt download qua trình duyệt Android gốc (Chrome/Samsung Internet) với `LaunchMode.externalApplication`.
+  - Thêm cấu hình intent https trong `AndroidManifest.xml`.
+- [x] **Tinh gọn UI thông báo lỗi**:
+  - Loại bỏ các URL presigned S3 dài dòng, hiển thị thông báo tinh tế trong hộp kính Liquid Glass.
+- [x] **Đóng gói & Phát hành v1.0.7**:
+  - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
+  - Biên dịch APK Release `TubeX-v1.0.7.apk` và phát hành lên GitHub Release.
+
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
+- 📦 **GitHub Release**: [v1.0.7 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.7)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.7.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.7/TubeX-v1.0.7.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 12/12 unit tests passed, biên dịch Release thành công 100%.
+
+
 - 📦 **GitHub Release**: [v1.0.6 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.6)
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.6.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.6/TubeX-v1.0.6.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, biên dịch Release thành công 100%.

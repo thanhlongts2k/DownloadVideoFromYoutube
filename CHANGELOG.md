@@ -2,6 +2,21 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.7] - 2026-09-27
+
+### [Fixed]
+- **Khắc phục triệt để lỗi "HttpException: Connection closed while receiving data" khi tải bản cập nhật qua GitHub CDN**:
+  - Tích hợp cơ chế **tải nối file thông minh (Resumable Chunk Downloader)** sử dụng HTTP `Range` header (`bytes=X-`) và ghi tiếp `FileMode.append`, tận dụng đầy đủ chuẩn `Accept-Ranges: bytes` của GitHub CDN.
+  - Cơ chế **Tự động thử lại (Auto-Retry)** lên đến 5 lần với thời gian chờ giãn cách thông minh. Khi kết nối mạng bị rớt, app tự động nối lại đúng vị trí byte đang tải dở mà không phải tải lại từ đầu.
+  - Bổ sung nút dự phòng **"Tải bằng trình duyệt"** (`url_launcher` với `LaunchMode.externalApplication`) mở trình quản lý tải file của hệ thống Android (Chrome/Samsung Internet) trong trường hợp mạng quá chập chờn.
+  - Tinh gọn giao diện lỗi: Loại bỏ hoàn toàn chuỗi token/URL bảo mật dài của Azure/S3, thay bằng hộp thông báo Liquid Glass sang trọng và nút "Thử lại".
+  - Tự động kiểm tra file APK đã tải hoàn tất trước đó để cài đặt ngay lập tức, tiết kiệm 100% dung lượng mạng.
+
+### [Changed]
+- Nâng cấp `versionCode: 8` và `versionName: 1.0.7`.
+
+---
+
 ## [v1.0.6] - 2026-09-27
 
 ### [Added]
