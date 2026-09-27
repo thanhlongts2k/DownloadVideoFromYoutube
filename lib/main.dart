@@ -1,3 +1,4 @@
+import 'presentation/player/mini_player.dart';
 import 'dart:io';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:flutter/material.dart';
@@ -66,12 +67,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.glassBorder, width: 0.8)),
-        ),
-        child: BottomNavigationBar(
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MiniPlayer(),
+          Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.glassBorder, width: 0.8)),
+            ),
+            child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
           items: const [
@@ -92,6 +97,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
+      ),
+        ],
       ),
     );
   }
