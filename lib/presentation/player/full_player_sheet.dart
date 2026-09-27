@@ -33,6 +33,7 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
   bool _isVideoInitialized = false;
   String? _loadedVideoPath;
   bool _showVideoView = true;
+  bool _isSeekingVideo = false;
   Timer? _syncTimer;
 
   @override
@@ -47,22 +48,29 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
   }
 
   void _startSyncTimer() {
-    _syncTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _syncTimer = Timer.periodic(const Duration(milliseconds: 600), (_) {
       if (!mounted) return;
       final playerService = ref.read(playerServiceProvider);
-      if (_videoController != null && _isVideoInitialized) {
+      if (_videoController != null && _isVideoInitialized && !_isSeekingVideo) {
         final vPos = _videoController!.value.position;
         final aPos = playerService.position;
         final diff = (vPos - aPos).inMilliseconds.abs();
-        if (diff > 500) {
-          _videoController!.seekTo(aPos);
+
+        // Only resync if video drifts significantly (e.g. after lockscreen resume or seek)
+        if (diff > 2000) {
+          _isSeekingVideo = true;
+          _videoController!.seekTo(aPos).then((_) {
+            _isSeekingVideo = false;
+          }).catchError((_) {
+            _isSeekingVideo = false;
+          });
         }
-        if (playerService.isPlaying != _videoController!.value.isPlaying) {
-          if (playerService.isPlaying) {
-            _videoController!.play();
-          } else {
-            _videoController!.pause();
-          }
+
+        // Sync playback state smoothly without fighting
+        if (playerService.isPlaying && !_videoController!.value.isPlaying) {
+          _videoController!.play();
+        } else if (!playerService.isPlaying && _videoController!.value.isPlaying) {
+          _videoController!.pause();
         }
       }
     });
@@ -88,21 +96,35 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
     _videoController = null;
     _isVideoInitialized = false;
 
-    final controller = VideoPlayerController.file(File(track.filePath));
+    // CRITICAL: mixWithOthers = true prevents ExoPlayer from requesting exclusive AudioFocus
+    // from Android AudioManager, ensuring just_audio background service is NEVER paused!
+    final controller = VideoPlayerController.file(
+      File(track.filePath),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     _videoController = controller;
 
     controller.initialize().then((_) async {
       if (!mounted || _videoController != controller) return;
-      // Mute embedded video: Audio is handled by PlayerService (just_audio + just_audio_background with lockscreen support)
       await controller.setVolume(0.0);
       await controller.setPlaybackSpeed(playerService.speed);
-      await controller.seekTo(playerService.position);
+      await controller.setLooping(playerService.loopMode == LoopMode.one);
+
+      if (playerService.position > Duration.zero) {
+        await controller.seekTo(playerService.position);
+      }
+
       if (playerService.isPlaying) {
         await controller.play();
+      } else {
+        await controller.pause();
       }
-      setState(() {
-        _isVideoInitialized = true;
-      });
+
+      if (mounted) {
+        setState(() {
+          _isVideoInitialized = true;
+        });
+      }
     }).catchError((e) {
       debugPrint('Error initializing embedded video in FullPlayerSheet: $e');
     });
@@ -111,10 +133,11 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Screen locked or app sent to background: pause video renderer to save battery
+      // Screen locked or app sent to background: pause video renderer to save battery.
+      // AudioService in PlayerService continues audio uninterrupted!
       _videoController?.pause();
     } else if (state == AppLifecycleState.resumed) {
-      // Screen unlocked or app resumed: resync video frame with current audio position
+      // Screen unlocked or app resumed: snap video frame to current audio position
       final playerService = ref.read(playerServiceProvider);
       if (_videoController != null && _isVideoInitialized) {
         _videoController!.seekTo(playerService.position);
@@ -426,14 +449,15 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                                   ],
                                 ),
                               ),
-                            // Tap overlay to play/pause
+                            // Tap overlay to play/pause with reliable sync
                             GestureDetector(
-                              onTap: () {
-                                playerService.togglePlay();
-                                if (playerService.isPlaying) {
-                                  _videoController?.pause();
-                                } else {
+                              onTap: () async {
+                                final willPlay = !playerService.isPlaying;
+                                await playerService.togglePlay();
+                                if (willPlay) {
                                   _videoController?.play();
+                                } else {
+                                  _videoController?.pause();
                                 }
                               },
                               behavior: HitTestBehavior.opaque,
@@ -719,12 +743,13 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                           icon: Icon(
                             playerService.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                           ),
-                          onPressed: () {
-                            playerService.togglePlay();
-                            if (playerService.isPlaying) {
-                              _videoController?.pause();
-                            } else {
+                          onPressed: () async {
+                            final willPlay = !playerService.isPlaying;
+                            await playerService.togglePlay();
+                            if (willPlay) {
                               _videoController?.play();
+                            } else {
+                              _videoController?.pause();
                             }
                           },
                         ),
@@ -738,6 +763,7 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                         },
                       ),
                       IconButton(
+                        iconSize: 36,
                         icon: const Icon(Icons.speed, color: Colors.white70),
                         onPressed: () => _showSpeedPicker(playerService),
                       ),

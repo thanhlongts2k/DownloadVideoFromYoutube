@@ -2,6 +2,21 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.9] - 2026-09-27
+
+### [Fixed]
+- **Khắc phục triệt để lỗi bấm phát video bị dừng ngay lập tức (Audio Focus Contention & Race-Condition Fix)**:
+  - Cấu hình `VideoPlayerOptions(mixWithOthers: true)` cho `VideoPlayerController`: ngăn chặn hoàn toàn ExoPlayer của video chiếm quyền AudioFocus độc quyền từ Android `AudioManager`, triệt tiêu hiện tượng `just_audio` bị hệ điều hành cưỡng chế pause.
+  - Chuẩn hóa luồng `togglePlay()` bất đồng bộ: xác định trước trạng thái phát (`willPlay`) và `await` hoàn tất trước khi đồng bộ `VideoPlayerController`, xóa bỏ hoàn toàn xung đột logic Play/Pause.
+  - Tối ưu bộ đồng bộ thời gian (Sync Timer): tăng ngưỡng phát hiện lệch khung hình lên 2000ms kèm cờ chống spam `seekTo()`, giúp video phát liên tục mượt mà 100% không bị khựng giật hay đứng hình.
+  - Xử lý trạng thái `ProcessingState.completed`: tự động tua về 00:00 khi phát lại bài hát/video đã chạy hết.
+  - Tối ưu hóa điều hướng Thư viện: chạm vào bài hát/video đang phát sẽ mở ngay `FullPlayerSheet` mà không tải lại danh sách từ đầu.
+
+### [Changed]
+- Nâng cấp `versionCode: 10` và `versionName: 1.0.9`.
+
+---
+
 ## [v1.0.8] - 2026-09-27
 
 ### [Added]

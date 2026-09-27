@@ -178,12 +178,21 @@ class PlayerService extends ChangeNotifier {
     if (_audioPlayer.playing) {
       await _audioPlayer.pause();
     } else {
+      if (_audioPlayer.processingState == ProcessingState.completed) {
+        await _audioPlayer.seek(Duration.zero);
+      }
       await _audioPlayer.play();
     }
     notifyListeners();
   }
 
-  Future<void> play() async => await _audioPlayer.play();
+  Future<void> play() async {
+    if (_audioPlayer.processingState == ProcessingState.completed) {
+      await _audioPlayer.seek(Duration.zero);
+    }
+    await _audioPlayer.play();
+    notifyListeners();
+  }
   Future<void> pause() async => await _audioPlayer.pause();
 
   Future<void> stop() async {

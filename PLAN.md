@@ -207,7 +207,22 @@
   - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
   - Biên dịch APK Release `TubeX-v1.0.8.apk` và phát hành lên GitHub Release.
 
+### 🛡️ PHASE 10: XỬ LÝ TRIỆT ĐỂ LỖI DỪNG VIDEO KHI BẤM PHÁT [v1.0.9]
+- [x] **Triệt tiêu xung đột AudioFocus (`mixWithOthers: true`)**:
+  - `VideoPlayerOptions(mixWithOthers: true)` vô hiệu hóa `handleAudioFocus` của ExoPlayer, bảo đảm `just_audio` giữ quyền âm thanh nền duy nhất.
+- [x] **Chuẩn hóa Play/Pause & Sync Timer Debounce**:
+  - `await togglePlay()` đồng bộ chuẩn xác giữa video và audio.
+  - Ngưỡng bù trừ khung hình 2000ms với cờ `_isSeekingVideo` chống hiện tượng buffer loop.
+- [x] **Đóng gói & Phát hành v1.0.9**:
+  - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
+  - Biên dịch APK Release `TubeX-v1.0.9.apk` và phát hành lên GitHub Release.
+
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
+- 📦 **GitHub Release**: [v1.0.9 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.9)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.9.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.9/TubeX-v1.0.9.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 12/12 unit tests passed, biên dịch Release thành công 100%.
+
+
 - 📦 **GitHub Release**: [v1.0.8 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.8)
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.8.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.8/TubeX-v1.0.8.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 12/12 unit tests passed, biên dịch Release thành công 100%.

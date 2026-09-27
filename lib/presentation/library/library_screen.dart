@@ -275,8 +275,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           borderRadius: 14,
           onTap: () {
-            _playFileInBackground(typedFiles, index);
-            FullPlayerSheet.show(context);
+            if (playerService.currentTrack?.filePath == entity.path) {
+              FullPlayerSheet.show(context);
+            } else {
+              _playFileInBackground(typedFiles, index);
+              FullPlayerSheet.show(context);
+            }
           },
           child: Row(
             children: [
