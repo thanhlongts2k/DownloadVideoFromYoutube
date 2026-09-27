@@ -2,6 +2,27 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.8] - 2026-09-27
+
+### [Added]
+- **Tích hợp Trình Chiếu Video Trực Tiếp trong Bảng Điều Khiển (Embedded Cinema Video Player in FullPlayerSheet)**:
+  - Khi phát tệp Video (.mp4, .mkv), giao diện `FullPlayerSheet` tự động hiển thị khung hình video độ nét cao trực tiếp ngay tại vị trí trung tâm thay vì chỉ hiển thị đĩa than xoay.
+  - Người dùng có thể xem video mượt mà ngay trên bảng điều khiển mà **không cần bấm mở màn hình xem riêng biệt**.
+  - Bổ sung phím tắt "Toàn màn hình" góc trên bên phải khung video cho phép mở rộng sang chế độ Cinema xoay ngang bất kỳ lúc nào.
+  - Phím chuyển đổi linh hoạt chế độ hiển thị: chuyển đổi 1 chạm giữa **Xem Video** và **Xem Đĩa Than Xoay Neon**.
+- **Cơ chế Phát Nền Kép Không Gián Đoạn (Seamless Screen-off Background Audio)**:
+  - Kết hợp đồng bộ hoàn hảo giữa `video_player` (hiển thị hình ảnh) và `PlayerService` (âm thanh nền Foreground Service):
+    - Khi người dùng **khóa màn hình (Screen-off)** hoặc thoát app: Video tự động tạm dừng render để tiết kiệm pin tối đa, trong khi **âm thanh vẫn tiếp tục phát liên tục 100% trong nền** với đầy đủ phím điều khiển trên màn hình khóa.
+    - Khi mở sáng màn hình trở lại: Khung hình video tự động đồng bộ (snap) tới đúng chính xác mili-giây âm thanh đang phát và tiếp tục chiếu liền mạch.
+- **Nâng Cấp Thư Viện Media (LibraryScreen)**:
+  - Chạm trực tiếp vào bất kỳ video nào trong danh sách: Tự động khởi chạy âm thanh nền và mở ngay bảng điều khiển chiếu video trực tiếp.
+  - Menu 3 chấm bổ sung tùy chọn "Xem toàn màn hình" nhanh chóng.
+
+### [Changed]
+- Nâng cấp `versionCode: 9` và `versionName: 1.0.8`.
+
+---
+
 ## [v1.0.7] - 2026-09-27
 
 ### [Fixed]

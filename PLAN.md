@@ -194,7 +194,25 @@
   - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
   - Biên dịch APK Release `TubeX-v1.0.7.apk` và phát hành lên GitHub Release.
 
+### 🎬 PHASE 9: TRÌNH CHIẾU VIDEO TRỰC TIẾP TRÊN TRÌNH PHÁT & PHÁT NỀN KHI TẮT MÀN HÌNH [v1.0.8]
+- [x] **Trình Chiếu Video Nhúng Trực Tiếp Trong `FullPlayerSheet`**:
+  - Tự động hiển thị khung video độ nét cao ngay tại bảng điều khiển trung tâm khi phát tệp video, không cần chuyển màn hình.
+  - Nút chuyển đổi nhanh chế độ Video / Đĩa xoay Neon.
+  - Phím mở rộng "Toàn màn hình" trực tiếp trên khung video.
+- [x] **Đồng Bộ Phát Âm Thanh Khi Tắt Màn Hình (Screen-Off Playback)**:
+  - Đồng bộ vị trí thời gian mili-giây giữa `video_player` và `just_audio_background`.
+  - Tắt màn hình: tiếp tục phát âm thanh trong nền qua `AudioService`, ngắt render video tiết kiệm pin.
+  - Bật màn hình: khung video tự động nối tiếp liền mạch theo đúng mốc thời gian âm thanh.
+- [x] **Đóng gói & Phát hành v1.0.8**:
+  - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
+  - Biên dịch APK Release `TubeX-v1.0.8.apk` và phát hành lên GitHub Release.
+
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
+- 📦 **GitHub Release**: [v1.0.8 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.8)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.8.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.8/TubeX-v1.0.8.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 12/12 unit tests passed, biên dịch Release thành công 100%.
+
+
 - 📦 **GitHub Release**: [v1.0.7 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.0.7)
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.0.7.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.0.7/TubeX-v1.0.7.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 12/12 unit tests passed, biên dịch Release thành công 100%.

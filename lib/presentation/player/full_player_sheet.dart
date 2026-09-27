@@ -1,12 +1,14 @@
-import 'video_player_screen.dart';
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:video_player/video_player.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../services/player_service.dart';
+import 'video_player_screen.dart';
 
 class FullPlayerSheet extends ConsumerStatefulWidget {
   const FullPlayerSheet({super.key});
@@ -25,21 +27,110 @@ class FullPlayerSheet extends ConsumerStatefulWidget {
 }
 
 class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _discController;
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+  String? _loadedVideoPath;
+  bool _showVideoView = true;
+  Timer? _syncTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _discController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
     );
+    _startSyncTimer();
+  }
+
+  void _startSyncTimer() {
+    _syncTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (!mounted) return;
+      final playerService = ref.read(playerServiceProvider);
+      if (_videoController != null && _isVideoInitialized) {
+        final vPos = _videoController!.value.position;
+        final aPos = playerService.position;
+        final diff = (vPos - aPos).inMilliseconds.abs();
+        if (diff > 500) {
+          _videoController!.seekTo(aPos);
+        }
+        if (playerService.isPlaying != _videoController!.value.isPlaying) {
+          if (playerService.isPlaying) {
+            _videoController!.play();
+          } else {
+            _videoController!.pause();
+          }
+        }
+      }
+    });
+  }
+
+  void _checkAndInitVideo(PlayableItem track, PlayerService playerService) {
+    if (!track.isVideo) {
+      if (_videoController != null) {
+        _videoController!.dispose();
+        _videoController = null;
+        _isVideoInitialized = false;
+        _loadedVideoPath = null;
+      }
+      return;
+    }
+
+    if (_loadedVideoPath == track.filePath && _videoController != null) {
+      return;
+    }
+
+    _loadedVideoPath = track.filePath;
+    _videoController?.dispose();
+    _videoController = null;
+    _isVideoInitialized = false;
+
+    final controller = VideoPlayerController.file(File(track.filePath));
+    _videoController = controller;
+
+    controller.initialize().then((_) async {
+      if (!mounted || _videoController != controller) return;
+      // Mute embedded video: Audio is handled by PlayerService (just_audio + just_audio_background with lockscreen support)
+      await controller.setVolume(0.0);
+      await controller.setPlaybackSpeed(playerService.speed);
+      await controller.seekTo(playerService.position);
+      if (playerService.isPlaying) {
+        await controller.play();
+      }
+      setState(() {
+        _isVideoInitialized = true;
+      });
+    }).catchError((e) {
+      debugPrint('Error initializing embedded video in FullPlayerSheet: $e');
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Screen locked or app sent to background: pause video renderer to save battery
+      _videoController?.pause();
+    } else if (state == AppLifecycleState.resumed) {
+      // Screen unlocked or app resumed: resync video frame with current audio position
+      final playerService = ref.read(playerServiceProvider);
+      if (_videoController != null && _isVideoInitialized) {
+        _videoController!.seekTo(playerService.position);
+        if (playerService.isPlaying) {
+          _videoController!.play();
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _syncTimer?.cancel();
     _discController.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -86,6 +177,7 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                       onSelected: (val) {
                         if (val) {
                           playerService.setSpeed(s);
+                          _videoController?.setPlaybackSpeed(s);
                           Navigator.pop(context);
                         }
                       },
@@ -184,6 +276,8 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
       return const SizedBox.shrink();
     }
 
+    _checkAndInitVideo(track, playerService);
+
     if (playerService.isPlaying) {
       if (!_discController.isAnimating) {
         _discController.repeat();
@@ -200,7 +294,7 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
     final currentSlider = pos.inMilliseconds.toDouble().clamp(0.0, maxSlider > 0 ? maxSlider : 1.0);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.92,
+      height: MediaQuery.of(context).size.height * 0.94,
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.96),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -251,7 +345,7 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Phát Trong Nền',
+                        track.isVideo ? 'Xem & Nghe Trong Nền' : 'Phát Trong Nền',
                         style: AppTypography.bodySmall.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
@@ -260,10 +354,22 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert, color: Colors.white70),
-                  onPressed: () {},
-                ),
+                if (track.isVideo)
+                  IconButton(
+                    icon: Icon(
+                      _showVideoView ? Icons.album_rounded : Icons.videocam_rounded,
+                      color: AppColors.secondary,
+                      size: 24,
+                    ),
+                    tooltip: _showVideoView ? 'Xem đĩa xoay' : 'Xem video trực tiếp',
+                    onPressed: () {
+                      setState(() {
+                        _showVideoView = !_showVideoView;
+                      });
+                    },
+                  )
+                else
+                  const SizedBox(width: 48),
               ],
             ),
           ),
@@ -274,114 +380,226 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Animated Rotating Disc Artwork
-                  Center(
-                    child: AnimatedBuilder(
-                      animation: _discController,
-                      builder: (context, child) {
-                        return Transform.rotate(
-                          angle: _discController.value * 2 * math.pi,
-                          child: child,
-                        );
-                      },
-                      child: Container(
-                        width: 250,
-                        height: 250,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const RadialGradient(
-                            colors: [
-                              Color(0xFF2A2A38),
-                              Color(0xFF151520),
-                              Color(0xFF0A0A10),
-                            ],
-                            stops: [0.3, 0.7, 1.0],
+                  // Center Display: Embedded Cinema Video OR Rotating Vinyl Disc
+                  if (track.isVideo && _showVideoView)
+                    Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(maxHeight: 250),
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.2),
+                            blurRadius: 25,
+                            spreadRadius: 2,
                           ),
-                          border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.25),
-                              blurRadius: 35,
-                              spreadRadius: 4,
-                            ),
-                            BoxShadow(
-                              color: AppColors.secondary.withOpacity(0.15),
-                              blurRadius: 45,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            // Vinyl grooves
-                            Container(
-                              width: 190,
-                              height: 190,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white10, width: 1.5),
-                              ),
-                            ),
-                            Container(
-                              width: 140,
-                              height: 140,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white12, width: 1.5),
-                              ),
-                            ),
-                            // Center label
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [AppColors.primary, AppColors.secondary],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                            if (_isVideoInitialized && _videoController != null)
+                              Center(
+                                child: AspectRatio(
+                                  aspectRatio: _videoController!.value.aspectRatio > 0
+                                      ? _videoController!.value.aspectRatio
+                                      : 16 / 9,
+                                  child: VideoPlayer(_videoController!),
+                                ),
+                              )
+                            else
+                              const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircularProgressIndicator(color: AppColors.primary),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Đang kết nối khung hình video...',
+                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Center(
-                                child: Icon(
-                                  track.isVideo ? Icons.movie_filter : Icons.music_note,
-                                  color: Colors.white,
-                                  size: 34,
+                            // Tap overlay to play/pause
+                            GestureDetector(
+                              onTap: () {
+                                playerService.togglePlay();
+                                if (playerService.isPlaying) {
+                                  _videoController?.pause();
+                                } else {
+                                  _videoController?.play();
+                                }
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(color: Colors.transparent),
+                            ),
+                            // Indicator when paused
+                            if (!playerService.isPlaying)
+                              IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 42),
+                                ),
+                              ),
+                            // Top-right Fullscreen Button
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    VideoPlayerScreen.open(
+                                      context,
+                                      file: File(track.filePath),
+                                      title: track.title,
+                                      initialPosition: playerService.position,
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.65),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white24),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.fullscreen_rounded, color: Colors.white, size: 16),
+                                        SizedBox(width: 4),
+                                        Text('Toàn màn hình',
+                                            style: TextStyle(color: Colors.white, fontSize: 11)),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ),
-
-                  if (track.isVideo)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary.withOpacity(0.18),
-                          foregroundColor: AppColors.secondary,
-                          side: const BorderSide(color: AppColors.secondary, width: 1.2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          VideoPlayerScreen.open(
-                            context,
-                            file: File(track.filePath),
-                            title: track.title,
-                            initialPosition: playerService.position,
+                    )
+                  else
+                    // Animated Rotating Disc Artwork
+                    Center(
+                      child: AnimatedBuilder(
+                        animation: _discController,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle: _discController.value * 2 * math.pi,
+                            child: child,
                           );
                         },
-                        icon: const Icon(Icons.videocam_rounded, size: 20),
-                        label: const Text(
-                          'Xem Video Màn Hình Lớn',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        child: Container(
+                          width: 250,
+                          height: 250,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const RadialGradient(
+                              colors: [
+                                Color(0xFF2A2A38),
+                                Color(0xFF151520),
+                                Color(0xFF0A0A10),
+                              ],
+                              stops: [0.3, 0.7, 1.0],
+                            ),
+                            border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.25),
+                                blurRadius: 35,
+                                spreadRadius: 4,
+                              ),
+                              BoxShadow(
+                                color: AppColors.secondary.withOpacity(0.15),
+                                blurRadius: 45,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Vinyl grooves
+                              Container(
+                                width: 190,
+                                height: 190,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white10, width: 1.5),
+                                ),
+                              ),
+                              Container(
+                                width: 140,
+                                height: 140,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white12, width: 1.5),
+                                ),
+                              ),
+                              // Center label
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [AppColors.primary, AppColors.secondary],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    track.isVideo ? Icons.movie_filter : Icons.music_note,
+                                    color: Colors.white,
+                                    size: 34,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      ),
+                    ),
+
+                  // Background continuous badge for video
+                  if (track.isVideo)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_clock_rounded, size: 13, color: AppColors.secondary),
+                          SizedBox(width: 6),
+                          Text(
+                            'Khóa màn hình vẫn tiếp tục phát âm thanh nền',
+                            style: TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -424,7 +642,9 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                           value: currentSlider,
                           max: maxSlider > 0 ? maxSlider : 1.0,
                           onChanged: (val) {
-                            playerService.seek(Duration(milliseconds: val.toInt()));
+                            final target = Duration(milliseconds: val.toInt());
+                            playerService.seek(target);
+                            _videoController?.seekTo(target);
                           },
                         ),
                       ),
@@ -462,12 +682,18 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                               ? Colors.white38
                               : AppColors.primary,
                         ),
-                        onPressed: playerService.toggleLoopMode,
+                        onPressed: () {
+                          playerService.toggleLoopMode();
+                          _videoController?.setLooping(playerService.loopMode == LoopMode.one);
+                        },
                       ),
                       IconButton(
                         iconSize: 36,
                         icon: const Icon(Icons.replay_10_rounded, color: Colors.white),
-                        onPressed: () => playerService.seekBackward(seconds: 10),
+                        onPressed: () {
+                          playerService.seekBackward(seconds: 10);
+                          _videoController?.seekTo(playerService.position - const Duration(seconds: 10));
+                        },
                       ),
                       Container(
                         width: 70,
@@ -493,13 +719,23 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                           icon: Icon(
                             playerService.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                           ),
-                          onPressed: playerService.togglePlay,
+                          onPressed: () {
+                            playerService.togglePlay();
+                            if (playerService.isPlaying) {
+                              _videoController?.pause();
+                            } else {
+                              _videoController?.play();
+                            }
+                          },
                         ),
                       ),
                       IconButton(
                         iconSize: 36,
                         icon: const Icon(Icons.forward_10_rounded, color: Colors.white),
-                        onPressed: () => playerService.seekForward(seconds: 10),
+                        onPressed: () {
+                          playerService.seekForward(seconds: 10);
+                          _videoController?.seekTo(playerService.position + const Duration(seconds: 10));
+                        },
                       ),
                       IconButton(
                         icon: const Icon(Icons.speed, color: Colors.white70),

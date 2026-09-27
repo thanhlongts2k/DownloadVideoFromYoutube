@@ -275,11 +275,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           borderRadius: 14,
           onTap: () {
-            if (isAudio) {
-              _playFileInBackground(typedFiles, index);
-            } else {
-              VideoPlayerScreen.open(context, file: entity, title: fileName);
-            }
+            _playFileInBackground(typedFiles, index);
+            FullPlayerSheet.show(context);
           },
           child: Row(
             children: [
@@ -350,8 +347,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 icon: const Icon(Icons.more_vert, color: Colors.white54, size: 20),
                 color: AppColors.surface,
                 onSelected: (val) {
-                  if (val == 'play_bg') {
-                    _playFileInBackground(typedFiles, index);
+                  if (val == 'fullscreen_video') {
+                    VideoPlayerScreen.open(context, file: entity, title: fileName);
                   } else if (val == 'open_external') {
                     _openFileExternal(entity);
                   } else if (val == 'share') {
@@ -363,12 +360,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 itemBuilder: (context) => [
                   if (!isAudio)
                     const PopupMenuItem(
-                      value: 'play_bg',
+                      value: 'fullscreen_video',
                       child: Row(
                         children: [
-                          Icon(Icons.headphones, color: AppColors.secondary, size: 18),
+                          Icon(Icons.fullscreen_rounded, color: AppColors.primary, size: 18),
                           SizedBox(width: 8),
-                          Text('Nghe trong nền', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          Text('Xem toàn màn hình', style: TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
                     ),
