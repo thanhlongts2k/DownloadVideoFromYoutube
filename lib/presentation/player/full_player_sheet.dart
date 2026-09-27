@@ -1,3 +1,5 @@
+import 'video_player_screen.dart';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -354,6 +356,34 @@ class _FullPlayerSheetState extends ConsumerState<FullPlayerSheet>
                       ),
                     ),
                   ),
+
+                  if (track.isVideo)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary.withOpacity(0.18),
+                          foregroundColor: AppColors.secondary,
+                          side: const BorderSide(color: AppColors.secondary, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          VideoPlayerScreen.open(
+                            context,
+                            file: File(track.filePath),
+                            title: track.title,
+                            initialPosition: playerService.position,
+                          );
+                        },
+                        icon: const Icon(Icons.videocam_rounded, size: 20),
+                        label: const Text(
+                          'Xem Video Màn Hình Lớn',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
 
                   // Title & Artist info
                   Column(

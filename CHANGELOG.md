@@ -2,6 +2,26 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.0.6] - 2026-09-27
+
+### [Added]
+- **Tích Hợp Trình Xem Video Chuẩn Điện Ảnh (Cinema Video Player)**:
+  - Bổ sung màn hình `VideoPlayerScreen` phát trực tiếp hình ảnh video độ phân giải cao kèm các phím điều khiển Liquid Glass hiện đại.
+  - Tự động ẩn/hiện điều khiển thông minh, hỗ trợ cử chỉ chạm và tua nhanh/lùi 10s.
+  - Tùy chỉnh tốc độ phát video linh hoạt từ `0.5x` đến `2.0x`.
+- **Chuyển Đổi Liền Mạch 1 Chạm Giữa Xem Video & Nghe Nền (Seamless Sync Transition)**:
+  - Khi đang xem video, người dùng có thể chạm nút **"Nghe nền"** để chuyển ngay sang chế độ phát âm thanh trong nền (khóa màn hình / thoát app) đúng ngay mốc thời gian (giây) đang xem dở.
+  - Khi đang nghe nền từ `FullPlayerSheet`, có nút bấm **"Xem Video Màn Hình Lớn"** để bung mở lại hình ảnh video tại đúng giây đang phát.
+- **Nâng Cấp Thư Viện Media (LibraryScreen)**:
+  - Chạm vào tệp Video: mở ngay trình phát xem video trực quan.
+  - Chạm vào tệp Âm thanh: phát nền với Mini-Player và đĩa than xoay Neon.
+  - Bổ sung tùy chọn "Nghe trong nền" trong menu mở rộng của từng tệp video.
+
+### [Changed]
+- Nâng cấp `versionCode: 7` và `versionName: 1.0.6`.
+
+---
+
 ## [v1.0.5] - 2026-09-27
 
 ### [Added]
