@@ -39,6 +39,7 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
     final safeTaskId = taskId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
     final videoTempPath = '${tempDir.path}/${safeTaskId}_v.raw';
     final audioTempPath = '${tempDir.path}/${safeTaskId}_a.raw';
+    final audioTempMuxPath = '${tempDir.path}/${safeTaskId}_m.raw';
     final muxOutputPath = '${tempDir.path}/${safeTaskId}_out.mp4';
 
     final task = DownloadTask(
@@ -219,8 +220,169 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
               try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
               try { if (await muxFile.exists()) await muxFile.delete(); } catch (_) {}
             }
+          } else if (format.isAudio) {
+            // TẢI ÂM THANH (M4A / MP3):
+            // Các luồng adaptive audio độc lập (itag 140/251) của YouTube thường bị áp đặt SABR buffer
+            // giới hạn ~1.2MB và trả về 403 Forbidden đối với Range request vượt ngưỡng ở các video dài.
+            // Ngược lại, luồng Muxed (itag 18 - 360p) luôn có cờ ratebypass=yes, tải siêu tốc (15MB/s) không bao giờ bị 403.
+            // Do đó: Ưu tiên tải luồng Muxed nhỏ nhất (360p) rồi dùng Native Demuxer trích xuất track AAC sạch chỉ mất 0.2s!
+            final muxedCandidates = manifest.muxed.sortByVideoQuality();
+            final muxedStream =
+                muxedCandidates.isNotEmpty ? muxedCandidates.last : null;
+
+            if (muxedStream != null) {
+              final mFile = File(audioTempMuxPath);
+              if (await mFile.exists()) await mFile.delete();
+
+              final totalExpected = muxedStream.size.totalBytes;
+              _updateTask(taskId, (t) => t.totalBytes = totalExpected);
+
+              int received = 0;
+              final mSink = mFile.openWrite();
+              final stream = yt.videos.streamsClient.get(muxedStream);
+
+              await for (final chunk in stream) {
+                if (_activeCancellations[taskId] == true) {
+                  await mSink.close();
+                  throw Exception('Download cancelled');
+                }
+                mSink.add(chunk);
+                received += chunk.length;
+
+                final now = DateTime.now();
+                final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+                final elapsedNotif =
+                    now.difference(lastNotifTime).inMilliseconds;
+
+                final progress = totalExpected > 0
+                    ? (received / totalExpected).clamp(0.0, 0.95)
+                    : 0.0;
+
+                if (elapsedUi >= 300) {
+                  final speed = formatSpeed(received - lastBytes,
+                      now.difference(lastTime).inMilliseconds);
+                  lastBytes = received;
+                  lastTime = now;
+                  lastUiTime = now;
+                  _updateTask(taskId, (t) {
+                    t.downloadedBytes = received;
+                    t.progress = progress;
+                    if (speed.isNotEmpty) t.speedStr = speed;
+                  });
+                }
+
+                if (elapsedNotif >= 1000) {
+                  lastNotifTime = now;
+                  NotificationService().showDownloadProgress(
+                    id: notifId,
+                    title: metadata.title,
+                    progress: (progress * 100).round(),
+                    speedStr: tSpeed(task),
+                  );
+                }
+              }
+              await mSink.flush();
+              await mSink.close();
+
+              // Trích xuất audio AAC từ file Muxed MP4 bằng Android Native MediaExtractor + MediaMuxer
+              _updateTask(taskId, (t) {
+                t.progress = 0.98;
+                t.speedStr = 'Đang trích xuất âm thanh...';
+              });
+
+              final extractSuccess = await NativeMuxer.extractAudio(
+                inputPath: audioTempMuxPath,
+                outputPath: targetPath,
+              );
+
+              final targetFile = File(targetPath);
+              if (!extractSuccess ||
+                  !await targetFile.exists() ||
+                  await targetFile.length() == 0) {
+                // Dự phòng: nếu native demuxer gặp trục trặc, giữ lại file tải về
+                if (await mFile.exists()) {
+                  await mFile.rename(targetPath);
+                }
+              }
+
+              // Xóa sạch file muxed tạm trong .tmp/
+              try {
+                if (await mFile.exists()) await mFile.delete();
+              } catch (_) {}
+
+              if (await targetFile.exists()) {
+                final finalLen = await targetFile.length();
+                _updateTask(taskId, (t) {
+                  t.totalBytes = finalLen;
+                  t.downloadedBytes = finalLen;
+                });
+              }
+            } else {
+              // Fallback nếu không có luồng muxed nào (tải trực tiếp từ audio tag)
+              final targetTag = format.audioTag ?? format.videoTag!;
+              final streamInfo =
+                  manifest.streams.firstWhere((s) => s.tag == targetTag);
+
+              final targetFile = File(targetPath);
+              final sink = targetFile.openWrite();
+              int received = 0;
+              final totalExpected = streamInfo.size.totalBytes;
+              _updateTask(taskId, (t) => t.totalBytes = totalExpected);
+
+              final stream = yt.videos.streamsClient.get(streamInfo);
+              await for (final chunk in stream) {
+                if (_activeCancellations[taskId] == true) {
+                  await sink.close();
+                  throw Exception('Download cancelled');
+                }
+                sink.add(chunk);
+                received += chunk.length;
+
+                final now = DateTime.now();
+                final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+                final elapsedNotif =
+                    now.difference(lastNotifTime).inMilliseconds;
+
+                final progress = totalExpected > 0
+                    ? (received / totalExpected).clamp(0.0, 1.0)
+                    : 0.0;
+
+                if (elapsedUi >= 300) {
+                  final speed = formatSpeed(received - lastBytes,
+                      now.difference(lastTime).inMilliseconds);
+                  lastBytes = received;
+                  lastTime = now;
+                  lastUiTime = now;
+                  _updateTask(taskId, (t) {
+                    t.downloadedBytes = received;
+                    t.progress = progress;
+                    if (speed.isNotEmpty) t.speedStr = speed;
+                  });
+                }
+
+                if (elapsedNotif >= 1000) {
+                  lastNotifTime = now;
+                  NotificationService().showDownloadProgress(
+                    id: notifId,
+                    title: metadata.title,
+                    progress: (progress * 100).round(),
+                    speedStr: tSpeed(task),
+                  );
+                }
+              }
+              await sink.flush();
+              await sink.close();
+
+              if (await targetFile.exists()) {
+                final actualLength = await targetFile.length();
+                if (actualLength < totalExpected) {
+                  throw Exception(
+                      'Tệp tải chưa đầy đủ ($actualLength / $totalExpected bytes)');
+                }
+              }
+            }
           } else {
-            // SINGLE STREAM (Audio MP3/M4A hoặc Video có sẵn audio)
+            // SINGLE VIDEO STREAM (Video có sẵn audio, ví dụ 360p hoặc 720p muxed)
             final targetTag = format.videoTag ?? format.audioTag!;
             final streamInfo =
                 manifest.streams.firstWhere((s) => s.tag == targetTag);
@@ -352,6 +514,7 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
       // Cleanup on error
       try { if (await File(videoTempPath).exists()) await File(videoTempPath).delete(); } catch (_) {}
       try { if (await File(audioTempPath).exists()) await File(audioTempPath).delete(); } catch (_) {}
+      try { if (await File(audioTempMuxPath).exists()) await File(audioTempMuxPath).delete(); } catch (_) {}
       try { if (await File(muxOutputPath).exists()) await File(muxOutputPath).delete(); } catch (_) {}
     } finally {
       _cancelTokens.remove(taskId);

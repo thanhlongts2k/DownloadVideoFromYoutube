@@ -1,8 +1,11 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ytdownloader/models/download_format.dart';
 import 'package:ytdownloader/models/download_task.dart';
+import 'package:ytdownloader/services/native_muxer.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('DownloadFormat Muxing tests', () {
     test('needsMuxing returns true when audioStreamUrl and tags are provided', () {
       final format = DownloadFormat(
@@ -70,6 +73,39 @@ void main() {
 
       expect(task.downloadedSizeFormatted, '10.0 MB');
       expect(task.totalSizeFormatted, '25.0 MB');
+    });
+  });
+
+  group('NativeMuxer platform channel tests', () {
+    test('NativeMuxer.extractAudio invokes platform channel correctly', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.antigravity.ytdownloader/muxer'),
+        (MethodCall methodCall) async {
+          if (methodCall.method == 'extractAudio') {
+            return true;
+          }
+          if (methodCall.method == 'mux') {
+            return true;
+          }
+          return null;
+        },
+      );
+
+      final result = await NativeMuxer.extractAudio(
+        inputPath: '/tmp/in.mp4',
+        outputPath: '/tmp/out.m4a',
+      );
+
+      expect(result, isTrue);
+
+      final muxResult = await NativeMuxer.mux(
+        videoPath: '/tmp/v.mp4',
+        audioPath: '/tmp/a.m4a',
+        outputPath: '/tmp/out.mp4',
+      );
+
+      expect(muxResult, isTrue);
     });
   });
 }

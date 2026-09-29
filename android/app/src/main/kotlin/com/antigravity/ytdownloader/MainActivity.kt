@@ -36,6 +36,21 @@ class MainActivity : AudioServiceActivity() {
                         result.success(success)
                     }
                 }
+            } else if (call.method == "extractAudio") {
+                val inputPath = call.argument<String>("inputPath")
+                val outputPath = call.argument<String>("outputPath")
+
+                if (inputPath == null || outputPath == null) {
+                    result.error("INVALID_ARGS", "Missing file paths", null)
+                    return@setMethodCallHandler
+                }
+
+                executor.execute {
+                    val success = extractAudioTrack(inputPath, outputPath)
+                    runOnUiThread {
+                        result.success(success)
+                    }
+                }
             } else {
                 result.notImplemented()
             }
@@ -171,6 +186,79 @@ class MainActivity : AudioServiceActivity() {
         } finally {
             try { videoExtractor?.release() } catch (_: Exception) {}
             try { audioExtractor?.release() } catch (_: Exception) {}
+            try { muxer?.release() } catch (_: Exception) {}
+        }
+    }
+
+    private fun extractAudioTrack(inputPath: String, outputPath: String): Boolean {
+        var extractor: MediaExtractor? = null
+        var muxer: MediaMuxer? = null
+
+        try {
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+
+            val inputFile = File(inputPath)
+            if (!inputFile.exists()) {
+                return false
+            }
+
+            extractor = MediaExtractor().apply { setDataSource(inputPath) }
+
+            var audioTrackIndex = -1
+            var audioFormat: MediaFormat? = null
+            for (i in 0 until extractor.trackCount) {
+                val format = extractor.getTrackFormat(i)
+                val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
+                if (mime.startsWith("audio/")) {
+                    audioTrackIndex = i
+                    audioFormat = format
+                    break
+                }
+            }
+
+            if (audioTrackIndex == -1 || audioFormat == null) {
+                return false
+            }
+
+            extractor.selectTrack(audioTrackIndex)
+
+            val outputFile = File(outputPath)
+            outputFile.parentFile?.mkdirs()
+            if (outputFile.exists()) {
+                outputFile.delete()
+            }
+
+            muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+            val muxerAudioTrack = muxer.addTrack(audioFormat)
+            muxer.start()
+
+            val maxBufferSize = 2 * 1024 * 1024
+            val buffer = ByteBuffer.allocateDirect(maxBufferSize)
+            val bufferInfo = MediaCodec.BufferInfo()
+
+            while (true) {
+                bufferInfo.offset = 0
+                val sampleSize = extractor.readSampleData(buffer, 0)
+                if (sampleSize < 0) {
+                    break
+                }
+                bufferInfo.size = sampleSize
+                bufferInfo.presentationTimeUs = extractor.sampleTime
+                bufferInfo.flags = extractor.sampleFlags
+                muxer.writeSampleData(muxerAudioTrack, buffer, bufferInfo)
+                extractor.advance()
+            }
+
+            muxer.stop()
+            muxer.release()
+            muxer = null
+
+            return outputFile.exists() && outputFile.length() > 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        } finally {
+            try { extractor?.release() } catch (_: Exception) {}
             try { muxer?.release() } catch (_: Exception) {}
         }
     }

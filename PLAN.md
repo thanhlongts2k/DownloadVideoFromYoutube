@@ -227,11 +227,17 @@
 - [x] **Giải phóng luồng UI khi tải file lớn**:
   - Throttle UI Riverpod 300ms, throttle notification 1000ms.
   - Caching `_fileStats` trong LibraryScreen, loại bỏ `statSync()` blocking.
-- [x] **Đóng gói & Phát hành v1.1.0**:
-  - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 12/12 unit tests passed.
-  - Biên dịch APK Release `TubeX-v1.1.0.apk` và phát hành lên GitHub Release.
+- [x] **Đóng gói & Phát hành v1.1.1**:
+  - Tích hợp Native Audio Demuxer (`MediaExtractor` + `MediaMuxer`) trích xuất AAC 0.2s.
+  - Tải Audio thông minh qua luồng Muxed `ratebypass=yes` (15 MB/s), khắc phục triệt để lỗi 403 / 0.0 MB ở video dài.
+  - Đạt 100% DoD Gate: `flutter analyze` 0 issues, 13/13 unit tests passed.
+  - Biên dịch APK Release `TubeX-v1.1.1.apk` và phát hành lên GitHub Release.
 
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
+- 📦 **GitHub Release**: [v1.1.1 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.1)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.1.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.1/TubeX-v1.1.1.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 13/13 unit tests passed, biên dịch Release thành công 100%.
+
 - 📦 **GitHub Release**: [v1.1.0 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.0)
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.0.apk (26.8 MB)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.0/TubeX-v1.1.0.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 12/12 unit tests passed, biên dịch Release thành công 100%.

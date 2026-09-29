@@ -20,4 +20,19 @@ class NativeMuxer {
       return false;
     }
   }
+
+  static Future<bool> extractAudio({
+    required String inputPath,
+    required String outputPath,
+  }) async {
+    try {
+      final result = await _channel.invokeMethod<bool>('extractAudio', {
+        'inputPath': inputPath,
+        'outputPath': outputPath,
+      });
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }
