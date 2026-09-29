@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/constants/app_config.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../core/widgets/glass_button.dart';
+import 'native_installer.dart';
 import 'storage_service.dart';
 
 class UpdateInfo {
@@ -158,12 +158,65 @@ class _UpdateDialog extends StatefulWidget {
   State<_UpdateDialog> createState() => _UpdateDialogState();
 }
 
-class _UpdateDialogState extends State<_UpdateDialog> {
+class _UpdateDialogState extends State<_UpdateDialog> with WidgetsBindingObserver {
   bool _isDownloading = false;
+  bool _readyToInstall = false;
+  bool _needsPermission = false;
+  String? _downloadedApkPath;
   double _progress = 0.0;
   String _downloadSpeed = '';
   String _statusText = '';
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkExistingApk();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _readyToInstall) {
+      _checkPermissionStatus();
+    }
+  }
+
+  Future<void> _checkPermissionStatus() async {
+    final canInstall = await NativeInstaller.canInstallApk();
+    if (mounted) {
+      setState(() {
+        _needsPermission = !canInstall;
+      });
+    }
+  }
+
+  Future<void> _checkExistingApk() async {
+    try {
+      final downloadDir = await StorageService.getUpdatesDirectory();
+      final apkPath = '${downloadDir.path}/TubeX_${widget.update.tagName}.apk';
+      final file = File(apkPath);
+      if (await file.exists()) {
+        final len = await file.length();
+        if (widget.update.apkSize <= 0 || len >= widget.update.apkSize) {
+          final canInstall = await NativeInstaller.canInstallApk();
+          if (mounted) {
+            setState(() {
+              _downloadedApkPath = apkPath;
+              _readyToInstall = true;
+              _needsPermission = !canInstall;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
 
   Future<void> _openInBrowser() async {
     try {
@@ -182,15 +235,46 @@ class _UpdateDialogState extends State<_UpdateDialog> {
     }
   }
 
+  Future<void> _requestInstallPermission() async {
+    await NativeInstaller.openInstallPermissionSettings();
+  }
+
+  Future<void> _triggerInstall() async {
+    final path = _downloadedApkPath;
+    if (path == null) return;
+
+    final canInstall = await NativeInstaller.canInstallApk();
+    if (!canInstall) {
+      if (mounted) {
+        setState(() {
+          _needsPermission = true;
+        });
+      }
+      await NativeInstaller.openInstallPermissionSettings();
+      return;
+    }
+
+    final success = await NativeInstaller.installApk(path);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vui lòng mở file để cài đặt: $path'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+    }
+  }
+
   Future<void> _startDownload() async {
     setState(() {
       _isDownloading = true;
+      _readyToInstall = false;
       _errorMessage = null;
       _statusText = 'Đang khởi tạo kết nối...';
       _downloadSpeed = '';
     });
 
-    final downloadDir = await StorageService.getDownloadDirectory(isAudio: false);
+    final downloadDir = await StorageService.getUpdatesDirectory();
     final apkPath = '${downloadDir.path}/TubeX_${widget.update.tagName}.apk';
     final partPath = '$apkPath.part';
     final finalFile = File(apkPath);
@@ -203,11 +287,14 @@ class _UpdateDialogState extends State<_UpdateDialog> {
       final existingSize = await finalFile.length();
       if (totalExpected > 0 && existingSize >= totalExpected) {
         if (mounted) {
-          Navigator.of(context).pop();
-          await OpenFilex.open(
-            apkPath,
-            type: 'application/vnd.android.package-archive',
-          );
+          final canInstall = await NativeInstaller.canInstallApk();
+          setState(() {
+            _isDownloading = false;
+            _downloadedApkPath = apkPath;
+            _readyToInstall = true;
+            _needsPermission = !canInstall;
+          });
+          await _triggerInstall();
         }
         return;
       }
@@ -377,16 +464,16 @@ class _UpdateDialogState extends State<_UpdateDialog> {
 
     if (success) {
       if (mounted) {
-        Navigator.of(context).pop();
-        final result = await OpenFilex.open(
-          apkPath,
-          type: 'application/vnd.android.package-archive',
-        );
-        if (result.type != ResultType.done && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Vui lòng mở file để cài đặt: $apkPath')),
-          );
-        }
+        final canInstall = await NativeInstaller.canInstallApk();
+        setState(() {
+          _isDownloading = false;
+          _downloadedApkPath = apkPath;
+          _readyToInstall = true;
+          _needsPermission = !canInstall;
+          _statusText = 'Tải hoàn tất!';
+        });
+
+        await _triggerInstall();
       }
     } else {
       if (mounted) {
@@ -535,6 +622,79 @@ class _UpdateDialogState extends State<_UpdateDialog> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                ],
+              ),
+            ] else if (_readyToInstall) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: (_needsPermission ? Colors.orangeAccent : AppColors.secondary)
+                      .withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: (_needsPermission ? Colors.orangeAccent : AppColors.secondary)
+                        .withOpacity(0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _needsPermission
+                          ? Icons.security_rounded
+                          : Icons.check_circle_rounded,
+                      color: _needsPermission
+                          ? Colors.orangeAccent
+                          : AppColors.secondary,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _needsPermission
+                            ? 'Bản cập nhật đã tải xong! Vui lòng cấp quyền "Cài đặt ứng dụng không rõ nguồn" cho TubeX để cập nhật.'
+                            : 'Bản cập nhật đã tải xong và sẵn sàng cài đặt vào máy!',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Colors.white,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Đóng',
+                      style: AppTypography.bodyMedium.copyWith(color: Colors.white54),
+                    ),
+                  ),
+                  if (_needsPermission)
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.orangeAccent,
+                        side: BorderSide(color: Colors.orangeAccent.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                      ),
+                      icon: const Icon(Icons.security_rounded, size: 18),
+                      label: const Text('Cấp quyền'),
+                      onPressed: _requestInstallPermission,
+                    ),
+                  GlassButton(
+                    label: _needsPermission ? 'Thử cài đặt' : 'Cài đặt ngay',
+                    icon: Icons.install_mobile_rounded,
+                    onPressed: _triggerInstall,
+                  ),
                 ],
               ),
             ] else ...[

@@ -2,6 +2,28 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.1.2] - 2026-09-29
+
+### [Added]
+- **Trình Cài Đặt APK Tự Động Chuẩn Native Android (Native APK Installer & FileProvider)**:
+  - Tích hợp `FileProvider` (`androidx.core.content.FileProvider`) chính quy trong `AndroidManifest.xml` và `res/xml/provider_paths.xml` để cấp quyền đọc URI tạm thời (`FLAG_GRANT_READ_URI_PERMISSION`) an toàn tuyệt đối cho Android Package Installer.
+  - Bổ sung `NativeInstaller` (`MainActivity.kt` + `native_installer.dart`): Khởi chạy intent `ACTION_VIEW` cài đặt APK trực tiếp từ tầng Native OS, tương thích 100% với Android 8 đến Android 15, khắc phục triệt để lỗi không tự động mở hộp thoại cài đặt trên các dòng máy Xiaomi/MIUI, Samsung, Oppo, Vivo.
+  - Tự động kiểm tra quyền cài đặt ứng dụng không rõ nguồn gốc (`canRequestPackageInstalls()`). Nếu chưa được cấp quyền, hiển thị hướng dẫn trực quan và nút mở trang cài đặt hệ thống của TubeX chỉ với 1 chạm (`ACTION_MANAGE_UNKNOWN_APP_SOURCES`).
+
+### [Changed]
+- **Tối ưu hóa Trải nghiệm Cập Nhật Ứng Dụng (Update Dialog UX Revamp)**:
+  - Chuyển thư mục lưu trữ APK cập nhật sang thư mục riêng biệt `/storage/emulated/0/Download/TubeX/Updates/` qua `StorageService.getUpdatesDirectory()`.
+  - Hộp thoại cập nhật không còn tự biến mất khi tải xong: Khi tải file APK hoàn tất, hệ thống tự động gọi Native Package Installer; nếu máy chưa cấp quyền, hộp thoại chuyển sang trạng thái sẵn sàng với nút "Cấp quyền" và "Cài đặt ngay", không làm mất file đã tải.
+  - Tự động nhận diện file APK đã tải sẵn trong máy để cho phép cài đặt ngay lập tức mà không cần tốn băng thông tải lại 30 MB.
+- Nâng cấp `versionCode: 13` và `versionName: 1.1.2`.
+
+### [Fixed]
+- **Khắc phục lỗi ứng dụng tải bản cập nhật về nhưng không tự cài đặt (Silent Package Install Failure Fix)**:
+  - Khắc phục lỗi phụ thuộc vào cơ chế kiểm tra quyền ngoài ý muốn của plugin `open_filex` trên Android 11+ (vốn kiểm tra quyền `READ_EXTERNAL_STORAGE` và `MANAGE_EXTERNAL_STORAGE` đã lỗi thời).
+  - Khắc phục lỗi repository GitHub ở chế độ Private khiến ứng dụng nhận phản hồi HTTP 404 và không tìm thấy bản phát hành mới.
+
+---
+
 ## [v1.1.1] - 2026-09-29
 
 ### [Added]

@@ -45,6 +45,35 @@ class StorageService {
     return targetDir;
   }
 
+  static Future<Directory> getUpdatesDirectory() async {
+    Directory? baseDir;
+    try {
+      if (Platform.isAndroid) {
+        final publicDownload = Directory('/storage/emulated/0/Download/TubeX');
+        if (await publicDownload.exists()) {
+          baseDir = publicDownload;
+        } else {
+          try {
+            await publicDownload.create(recursive: true);
+            baseDir = publicDownload;
+          } catch (_) {
+            baseDir = await getExternalStorageDirectory();
+          }
+        }
+      } else {
+        baseDir = await getApplicationDocumentsDirectory();
+      }
+    } catch (_) {
+      baseDir = await getApplicationDocumentsDirectory();
+    }
+
+    final updatesDir = Directory('${baseDir!.path}/Updates');
+    if (!await updatesDir.exists()) {
+      await updatesDir.create(recursive: true);
+    }
+    return updatesDir;
+  }
+
   static String sanitizeFilename(String name) {
     return name.replaceAll(RegExp(r'[\/:*?"<>|]'), '_').trim();
   }

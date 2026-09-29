@@ -4,11 +4,11 @@
 
 ---
 
-[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.1)
-[![Download APK](https://img.shields.io/badge/Download-TubeX%20APK-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.1/TubeX-v1.1.1.apk)
+[![Release](https://img.shields.io/github/v/release/thanhlongts2k/DownloadVideoFromYoutube?color=00F0FF&label=Release&style=for-the-badge)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.2)
+[![Download APK](https://img.shields.io/badge/Download-TubeX%20APK-FF007F?style=for-the-badge&logo=android)](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.2/TubeX-v1.1.2.apk)
 
-> 📲 **Tải trực tiếp bản cài đặt Android APK**: [TubeX-v1.1.1.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.1/TubeX-v1.1.1.apk)  
-> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.1.1](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.1)
+> 📲 **Tải trực tiếp bản cài đặt Android APK**: [TubeX-v1.1.2.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.2/TubeX-v1.1.2.apk)  
+> 🏷️ **Xem thông tin bản phát hành trên GitHub**: [GitHub Release v1.1.2](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.2)
 
 ---
 

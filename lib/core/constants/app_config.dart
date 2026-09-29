@@ -1,7 +1,7 @@
 class AppConfig {
   static const String appName = 'TubeX';
-  static const String appVersion = '1.1.1';
-  static const int buildNumber = 12;
+  static const String appVersion = '1.1.2';
+  static const int buildNumber = 13;
   static const String githubRepo = 'thanhlongts2k/DownloadVideoFromYoutube';
   static const String githubReleasesApi =
       'https://api.github.com/repos/thanhlongts2k/DownloadVideoFromYoutube/releases/latest';
