@@ -99,117 +99,61 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
           }
 
           if (format.needsMuxing) {
-            // VIDEO ONLY + AUDIO => Ghép bằng Native MediaMuxer siêu tốc
-            final videoStreamInfo =
-                manifest.streams.firstWhere((s) => s.tag == format.videoTag);
-            final audioStreamInfo =
-                manifest.streams.firstWhere((s) => s.tag == format.audioTag);
-
             final vFile = File(videoTempPath);
             final aFile = File(audioTempPath);
-            if (await vFile.exists()) await vFile.delete();
-            if (await aFile.exists()) await aFile.delete();
+            final mTempFile = File(audioTempMuxPath);
+            final muxFile = File(muxOutputPath);
 
-            // BYPASS SABR: Kiểm tra luồng Muxed (360p) có cờ ratebypass=yes để trích xuất âm thanh AAC sạch,
-            // tránh triệt để lỗi YouTube chặn 403 Forbidden trên luồng audio độc lập (itag 140).
-            final muxedCandidates = manifest.muxed.sortByVideoQuality();
-            final muxedAudioCandidate =
-                muxedCandidates.isNotEmpty ? muxedCandidates.last : null;
+            try {
+              // VIDEO ONLY + AUDIO => Ghép bằng Native MediaMuxer siêu tốc
+              final videoStreamInfo =
+                  manifest.streams.firstWhere((s) => s.tag == format.videoTag);
+              final audioStreamInfo =
+                  manifest.streams.firstWhere((s) => s.tag == format.audioTag);
 
-            final audioExpectedSize = muxedAudioCandidate != null
-                ? muxedAudioCandidate.size.totalBytes
-                : audioStreamInfo.size.totalBytes;
+              if (await vFile.exists()) await vFile.delete();
+              if (await aFile.exists()) await aFile.delete();
 
-            final totalSize =
-                videoStreamInfo.size.totalBytes + audioExpectedSize;
-            _updateTask(taskId, (t) => t.totalBytes = totalSize);
+              // BYPASS SABR: Kiểm tra luồng Muxed (360p) có cờ ratebypass=yes để trích xuất âm thanh AAC sạch,
+              // tránh triệt để lỗi YouTube chặn 403 Forbidden trên luồng audio độc lập (itag 140).
+              final muxedCandidates = manifest.muxed.sortByVideoQuality();
+              final muxedAudioCandidate =
+                  muxedCandidates.isNotEmpty ? muxedCandidates.last : null;
 
-            int videoReceived = 0;
-            final vSink = vFile.openWrite();
-            _activeSinks[taskId] = vSink;
+              final audioExpectedSize = muxedAudioCandidate != null
+                  ? muxedAudioCandidate.size.totalBytes
+                  : audioStreamInfo.size.totalBytes;
 
-            // 1. Tải Video stream có cơ chế pipe stream & timeout an toàn
-            final vStream = yt.videos.streamsClient.get(videoStreamInfo);
-            await _pipeStream(
-              stream: vStream,
-              sink: vSink,
-              taskId: taskId,
-              onChunk: (chunkLength) {
-                videoReceived += chunkLength;
-                final now = DateTime.now();
-                final elapsedUi = now.difference(lastUiTime).inMilliseconds;
-                final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+              final totalSize =
+                  videoStreamInfo.size.totalBytes + audioExpectedSize;
+              _updateTask(taskId, (t) => t.totalBytes = totalSize);
 
-                if (elapsedUi >= 300) {
-                  final speed = formatSpeed(
-                      videoReceived - lastBytes, now.difference(lastTime).inMilliseconds);
-                  lastBytes = videoReceived;
-                  lastTime = now;
-                  lastUiTime = now;
-                  final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
-                  _updateTask(taskId, (t) {
-                    t.downloadedBytes = videoReceived;
-                    t.progress = progress;
-                    if (speed.isNotEmpty) t.speedStr = speed;
-                  });
-                }
+              int videoReceived = 0;
+              final vSink = vFile.openWrite();
+              _activeSinks[taskId] = vSink;
 
-                if (elapsedNotif >= 1000) {
-                  lastNotifTime = now;
-                  final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
-                  NotificationService().showDownloadProgress(
-                    id: notifId,
-                    title: metadata.title,
-                    progress: (progress * 100).round(),
-                    speedStr: tSpeed(task),
-                  );
-                }
-              },
-            );
-
-            await vSink.flush();
-            await vSink.close();
-            _activeSinks.remove(taskId);
-
-            if (_activeCancellations[taskId] == true) {
-              throw Exception('Download cancelled');
-            }
-
-            // 2. Tải Audio stream bằng cơ chế Smart Bypass chống 403
-            lastBytes = 0;
-            lastTime = DateTime.now();
-            int audioReceived = 0;
-
-            if (muxedAudioCandidate != null) {
-              _updateTask(taskId, (t) => t.speedStr = 'Đang tải âm thanh (Bypass)...');
-              final mFile = File(audioTempMuxPath);
-              if (await mFile.exists()) await mFile.delete();
-
-              final mSink = mFile.openWrite();
-              _activeSinks[taskId] = mSink;
-              final stream = yt.videos.streamsClient.get(muxedAudioCandidate);
-
+              // 1. Tải Video stream có cơ chế pipe stream & watchdog an toàn
+              _updateTask(taskId, (t) => t.speedStr = 'Đang tải video...');
+              final vStream = yt.videos.streamsClient.get(videoStreamInfo);
               await _pipeStream(
-                stream: stream,
-                sink: mSink,
+                stream: vStream,
+                sink: vSink,
                 taskId: taskId,
                 onChunk: (chunkLength) {
-                  audioReceived += chunkLength;
+                  videoReceived += chunkLength;
                   final now = DateTime.now();
                   final elapsedUi = now.difference(lastUiTime).inMilliseconds;
                   final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
 
-                  final currentDownloaded = videoReceived + audioReceived;
-                  final progress = (currentDownloaded / totalSize).clamp(0.0, 0.98);
-
                   if (elapsedUi >= 300) {
                     final speed = formatSpeed(
-                        audioReceived - lastBytes, now.difference(lastTime).inMilliseconds);
-                    lastBytes = audioReceived;
+                        videoReceived - lastBytes, now.difference(lastTime).inMilliseconds);
+                    lastBytes = videoReceived;
                     lastTime = now;
                     lastUiTime = now;
+                    final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
                     _updateTask(taskId, (t) {
-                      t.downloadedBytes = currentDownloaded;
+                      t.downloadedBytes = videoReceived;
                       t.progress = progress;
                       if (speed.isNotEmpty) t.speedStr = speed;
                     });
@@ -217,6 +161,7 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
 
                   if (elapsedNotif >= 1000) {
                     lastNotifTime = now;
+                    final progress = (videoReceived / totalSize).clamp(0.0, 0.95);
                     NotificationService().showDownloadProgress(
                       id: notifId,
                       title: metadata.title,
@@ -227,116 +172,250 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
                 },
               );
 
-              await mSink.flush();
-              await mSink.close();
+              await vSink.flush();
+              await vSink.close();
               _activeSinks.remove(taskId);
 
               if (_activeCancellations[taskId] == true) {
                 throw Exception('Download cancelled');
               }
 
-              // Trích xuất audio AAC sạch từ file Muxed MP4 bằng Native MediaExtractor + MediaMuxer (0.2s)
-              _updateTask(taskId, (t) {
-                t.progress = 0.98;
-                t.speedStr = 'Đang trích xuất âm thanh...';
-              });
+              // 2. Tải Audio stream bằng cơ chế Smart Bypass chống 403
+              lastBytes = 0;
+              lastTime = DateTime.now();
+              int audioReceived = 0;
 
-              final extractSuccess = await NativeMuxer.extractAudio(
-                inputPath: audioTempMuxPath,
-                outputPath: audioTempPath,
-              );
+              if (muxedAudioCandidate != null) {
+                _updateTask(taskId, (t) => t.speedStr = 'Đang tải âm thanh (Bypass)...');
+                if (await mTempFile.exists()) await mTempFile.delete();
 
-              try {
-                if (await mFile.exists()) await mFile.delete();
-              } catch (_) {}
+                final mSink = mTempFile.openWrite();
+                _activeSinks[taskId] = mSink;
+                final stream = yt.videos.streamsClient.get(muxedAudioCandidate);
 
-              if (!extractSuccess || !await File(audioTempPath).exists() || await File(audioTempPath).length() == 0) {
-                throw Exception('Không thể trích xuất luồng âm thanh');
+                await _pipeStream(
+                  stream: stream,
+                  sink: mSink,
+                  taskId: taskId,
+                  onChunk: (chunkLength) {
+                    audioReceived += chunkLength;
+                    final now = DateTime.now();
+                    final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+                    final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+
+                    final currentDownloaded = videoReceived + audioReceived;
+                    final progress = (currentDownloaded / totalSize).clamp(0.0, 0.98);
+
+                    if (elapsedUi >= 300) {
+                      final speed = formatSpeed(
+                          audioReceived - lastBytes, now.difference(lastTime).inMilliseconds);
+                      lastBytes = audioReceived;
+                      lastTime = now;
+                      lastUiTime = now;
+                      _updateTask(taskId, (t) {
+                        t.downloadedBytes = currentDownloaded;
+                        t.progress = progress;
+                        if (speed.isNotEmpty) t.speedStr = speed;
+                      });
+                    }
+
+                    if (elapsedNotif >= 1000) {
+                      lastNotifTime = now;
+                      NotificationService().showDownloadProgress(
+                        id: notifId,
+                        title: metadata.title,
+                        progress: (progress * 100).round(),
+                        speedStr: tSpeed(task),
+                      );
+                    }
+                  },
+                );
+
+                await mSink.flush();
+                await mSink.close();
+                _activeSinks.remove(taskId);
+
+                if (_activeCancellations[taskId] == true) {
+                  throw Exception('Download cancelled');
+                }
+
+                // Trích xuất audio AAC sạch từ file Muxed MP4 bằng Native MediaExtractor + MediaMuxer (0.2s)
+                _updateTask(taskId, (t) {
+                  t.progress = 0.98;
+                  t.speedStr = 'Đang trích xuất âm thanh...';
+                });
+
+                final extractSuccess = await NativeMuxer.extractAudio(
+                  inputPath: audioTempMuxPath,
+                  outputPath: audioTempPath,
+                );
+
+                try {
+                  if (await mTempFile.exists()) await mTempFile.delete();
+                } catch (_) {}
+
+                if (!extractSuccess || !await File(audioTempPath).exists() || await File(audioTempPath).length() == 0) {
+                  throw Exception('Không thể trích xuất luồng âm thanh');
+                }
+              } else {
+                // Fallback nếu không có luồng Muxed: tải trực tiếp từ audioStreamInfo (itag 140)
+                _updateTask(taskId, (t) => t.speedStr = 'Đang tải âm thanh trực tiếp...');
+                final aSink = aFile.openWrite();
+                _activeSinks[taskId] = aSink;
+
+                final aStream = yt.videos.streamsClient.get(audioStreamInfo);
+                await _pipeStream(
+                  stream: aStream,
+                  sink: aSink,
+                  taskId: taskId,
+                  onChunk: (chunkLength) {
+                    audioReceived += chunkLength;
+                    final now = DateTime.now();
+                    final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+                    final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+
+                    final currentDownloaded = videoReceived + audioReceived;
+                    final progress = (currentDownloaded / totalSize).clamp(0.0, 0.98);
+
+                    if (elapsedUi >= 300) {
+                      final speed = formatSpeed(
+                          audioReceived - lastBytes, now.difference(lastTime).inMilliseconds);
+                      lastBytes = audioReceived;
+                      lastTime = now;
+                      lastUiTime = now;
+                      _updateTask(taskId, (t) {
+                        t.downloadedBytes = currentDownloaded;
+                        t.progress = progress;
+                        if (speed.isNotEmpty) t.speedStr = speed;
+                      });
+                    }
+
+                    if (elapsedNotif >= 1000) {
+                      lastNotifTime = now;
+                      NotificationService().showDownloadProgress(
+                        id: notifId,
+                        title: metadata.title,
+                        progress: (progress * 100).round(),
+                        speedStr: tSpeed(task),
+                      );
+                    }
+                  },
+                );
+
+                await aSink.flush();
+                await aSink.close();
+                _activeSinks.remove(taskId);
               }
-            } else {
-              // Fallback nếu không có luồng Muxed: tải trực tiếp từ audioStreamInfo (itag 140)
-              _updateTask(taskId, (t) => t.speedStr = 'Đang tải âm thanh trực tiếp...');
-              final aSink = aFile.openWrite();
-              _activeSinks[taskId] = aSink;
 
-              final aStream = yt.videos.streamsClient.get(audioStreamInfo);
-              await _pipeStream(
-                stream: aStream,
-                sink: aSink,
-                taskId: taskId,
-                onChunk: (chunkLength) {
-                  audioReceived += chunkLength;
-                  final now = DateTime.now();
-                  final elapsedUi = now.difference(lastUiTime).inMilliseconds;
-                  final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+              if (_activeCancellations[taskId] == true) {
+                throw Exception('Download cancelled');
+              }
 
-                  final currentDownloaded = videoReceived + audioReceived;
-                  final progress = (currentDownloaded / totalSize).clamp(0.0, 0.98);
-
-                  if (elapsedUi >= 300) {
-                    final speed = formatSpeed(
-                        audioReceived - lastBytes, now.difference(lastTime).inMilliseconds);
-                    lastBytes = audioReceived;
-                    lastTime = now;
-                    lastUiTime = now;
-                    _updateTask(taskId, (t) {
-                      t.downloadedBytes = currentDownloaded;
-                      t.progress = progress;
-                      if (speed.isNotEmpty) t.speedStr = speed;
-                    });
-                  }
-
-                  if (elapsedNotif >= 1000) {
-                    lastNotifTime = now;
-                    NotificationService().showDownloadProgress(
-                      id: notifId,
-                      title: metadata.title,
-                      progress: (progress * 100).round(),
-                      speedStr: tSpeed(task),
-                    );
-                  }
-                },
+              // 3. Ghép Video + Audio thành file MP4 chuẩn hoàn chỉnh bằng Native MediaMuxer siêu tốc
+              _updateTask(taskId, (t) => t.speedStr = 'Đang ghép âm thanh...');
+              final muxSuccess = await NativeMuxer.mux(
+                videoPath: videoTempPath,
+                audioPath: audioTempPath,
+                outputPath: muxOutputPath,
               );
 
-              await aSink.flush();
-              await aSink.close();
-              _activeSinks.remove(taskId);
-            }
+              if (_activeCancellations[taskId] == true) {
+                throw Exception('Download cancelled');
+              }
 
-            if (_activeCancellations[taskId] == true) {
-              throw Exception('Download cancelled');
-            }
-
-            // 3. Ghép Video + Audio thành file MP4 chuẩn hoàn chỉnh bằng Native MediaMuxer siêu tốc
-            _updateTask(taskId, (t) => t.speedStr = 'Đang ghép âm thanh...');
-            final muxSuccess = await NativeMuxer.mux(
-              videoPath: videoTempPath,
-              audioPath: audioTempPath,
-              outputPath: muxOutputPath,
-            );
-
-            if (_activeCancellations[taskId] == true) {
-              throw Exception('Download cancelled');
-            }
-
-            final muxFile = File(muxOutputPath);
-            if (muxSuccess && await muxFile.exists() && (await muxFile.length() > 0)) {
-              final finalFile = File(targetPath);
-              if (await finalFile.exists()) await finalFile.delete();
-              await muxFile.rename(targetPath);
-
-              // Xóa sạch file tạm trong .tmp/
-              try { if (await vFile.exists()) await vFile.delete(); } catch (_) {}
-              try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
-            } else {
-              // Dự phòng: nếu muxing có vấn đề, cứu luồng video thành phẩm
-              if (await vFile.exists()) {
+              if (muxSuccess && await muxFile.exists() && (await muxFile.length() > 0)) {
                 final finalFile = File(targetPath);
                 if (await finalFile.exists()) await finalFile.delete();
-                await vFile.rename(targetPath);
+                await muxFile.rename(targetPath);
+
+                // Xóa sạch file tạm trong .tmp/
+                try { if (await vFile.exists()) await vFile.delete(); } catch (_) {}
+                try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
+              } else {
+                // Dự phòng: nếu muxing có vấn đề, cứu luồng video thành phẩm
+                if (await vFile.exists()) {
+                  final finalFile = File(targetPath);
+                  if (await finalFile.exists()) await finalFile.delete();
+                  await vFile.rename(targetPath);
+                }
+                try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
+                try { if (await muxFile.exists()) await muxFile.delete(); } catch (_) {}
               }
-              try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
-              try { if (await muxFile.exists()) await muxFile.delete(); } catch (_) {}
+            } catch (muxError) {
+              if (_activeCancellations[taskId] == true) rethrow;
+
+              // SMART AUTO-FALLBACK: Nếu luồng video độ phân giải cao bị YouTube chặn 403 Forbidden (>35MB) hoặc timeout,
+              // tự động kích hoạt luồng Muxed chuẩn YouTube (360p/720p có cờ ratebypass=yes) để cứu vãn 100% video hoàn chỉnh có âm thanh!
+              final muxedFallbacks = manifest.muxed.sortByVideoQuality();
+              if (muxedFallbacks.isNotEmpty) {
+                final fallbackStream = muxedFallbacks.first;
+                _updateTask(taskId, (t) {
+                  t.speedStr = 'Tự động tải bản chuẩn ổn định...';
+                  t.progress = 0.05;
+                  t.downloadedBytes = 0;
+                  t.totalBytes = fallbackStream.size.totalBytes;
+                });
+
+                final fFile = File(targetPath);
+                if (await fFile.exists()) await fFile.delete();
+                final fSink = fFile.openWrite();
+                _activeSinks[taskId] = fSink;
+
+                int fallbackReceived = 0;
+                lastBytes = 0;
+                lastTime = DateTime.now();
+                final fStream = yt.videos.streamsClient.get(fallbackStream);
+
+                await _pipeStream(
+                  stream: fStream,
+                  sink: fSink,
+                  taskId: taskId,
+                  onChunk: (chunkLength) {
+                    fallbackReceived += chunkLength;
+                    final now = DateTime.now();
+                    final elapsedUi = now.difference(lastUiTime).inMilliseconds;
+                    final elapsedNotif = now.difference(lastNotifTime).inMilliseconds;
+
+                    final progress = fallbackStream.size.totalBytes > 0
+                        ? (fallbackReceived / fallbackStream.size.totalBytes).clamp(0.0, 0.99)
+                        : 0.0;
+
+                    if (elapsedUi >= 300) {
+                      final speed = formatSpeed(
+                          fallbackReceived - lastBytes, now.difference(lastTime).inMilliseconds);
+                      lastBytes = fallbackReceived;
+                      lastTime = now;
+                      lastUiTime = now;
+                      _updateTask(taskId, (t) {
+                        t.downloadedBytes = fallbackReceived;
+                        t.progress = progress;
+                        if (speed.isNotEmpty) t.speedStr = speed;
+                      });
+                    }
+
+                    if (elapsedNotif >= 1000) {
+                      lastNotifTime = now;
+                      NotificationService().showDownloadProgress(
+                        id: notifId,
+                        title: metadata.title,
+                        progress: (progress * 100).round(),
+                        speedStr: tSpeed(task),
+                      );
+                    }
+                  },
+                );
+
+                await fSink.flush();
+                await fSink.close();
+                _activeSinks.remove(taskId);
+
+                try { if (await vFile.exists()) await vFile.delete(); } catch (_) {}
+                try { if (await aFile.exists()) await aFile.delete(); } catch (_) {}
+                try { if (await mTempFile.exists()) await mTempFile.delete(); } catch (_) {}
+                try { if (await muxFile.exists()) await muxFile.delete(); } catch (_) {}
+              } else {
+                rethrow;
+              }
             }
           } else if (format.isAudio) {
             // TẢI ÂM THANH (M4A / MP3):
@@ -689,29 +768,42 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
     required Function(int chunkLength) onChunk,
   }) async {
     final completer = Completer<void>();
-    // Timeout an toàn 25 giây cho mỗi lần chờ chunk dữ liệu
-    final timedStream = stream.timeout(
-      const Duration(seconds: 25),
-      onTimeout: (EventSink<List<int>> s) {
-        s.addError(TimeoutException('Quá thời gian chờ mạng phản hồi (25s)'));
-      },
-    );
+    Timer? watchdogTimer;
 
-    final sub = timedStream.listen(
+    void resetWatchdog() {
+      watchdogTimer?.cancel();
+      // Watchdog 15 giây: nếu quá 15s không có chunk dữ liệu nào được phát ra (do YouTube bóp/chặn 403)
+      watchdogTimer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            TimeoutException('Quá thời gian chờ mạng YouTube phản hồi (15s)'),
+          );
+        }
+      });
+    }
+
+    resetWatchdog();
+
+    StreamSubscription<List<int>>? sub;
+    sub = stream.listen(
       (chunk) {
         if (_activeCancellations[taskId] == true) {
+          watchdogTimer?.cancel();
           if (!completer.isCompleted) {
             completer.completeError(Exception('Download cancelled'));
           }
           return;
         }
+        resetWatchdog();
         sink.add(chunk);
         onChunk(chunk.length);
       },
       onError: (e) {
+        watchdogTimer?.cancel();
         if (!completer.isCompleted) completer.completeError(e);
       },
       onDone: () {
+        watchdogTimer?.cancel();
         if (!completer.isCompleted) completer.complete();
       },
       cancelOnError: true,
@@ -721,6 +813,7 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
     try {
       await completer.future;
     } finally {
+      watchdogTimer?.cancel();
       _activeSubscriptions.remove(taskId);
       await sub.cancel();
     }

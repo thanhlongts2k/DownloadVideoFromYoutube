@@ -57,17 +57,17 @@ class YoutubeDirectService {
         final height = s.videoResolution.height;
         if (!seenResolutions.contains(height)) {
           seenResolutions.add(height);
-          String badge = '';
+          String badge = '⚡ Siêu Tốc';
           if (height >= 1080) {
-            badge = 'Full HD';
+            badge = '⚡ Full HD';
           } else if (height >= 720) {
-            badge = 'HD';
+            badge = '⚡ HD Siêu Tốc';
           }
 
           formats.add(DownloadFormat(
             formatId: s.tag.toString(),
             resolution: '${height}p',
-            resLabel: '${height}p (Kèm Âm thanh)',
+            resLabel: '${height}p (⚡ Tải Siêu Tốc - Có Sẵn Âm Thanh)',
             ext: 'mp4',
             qualityBadge: badge,
             filesize: s.size.totalBytes,

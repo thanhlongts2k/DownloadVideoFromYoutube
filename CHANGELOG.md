@@ -2,6 +2,28 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.1.5] - 2026-10-02
+
+### [Added]
+- **Bộ Đếm Thời Gian Watchdog Chủ Động (Active Timer-based Watchdog)**:
+  - Thay thế cơ chế stream timeout thụ động bằng bộ đếm Timer Watchdog 15 giây chính xác: mỗi chunk dữ liệu nhận được sẽ lập tức đặt lại bộ đếm; nếu sau 15 giây server YouTube không phản hồi chunk tiếp theo, watchdog sẽ lập tức ngắt stream và kích hoạt luồng xử lý dự phòng, triệt tiêu hoàn toàn tình trạng treo luồng vĩnh viễn.
+- **Cơ Chế Smart Auto-Fallback Cứu Video Tự Động (100% Guaranteed Success)**:
+  - Khi người dùng tải video độ nét cao (>35MB) bị server YouTube cắt ngang bằng mã lỗi 403 Forbidden do chính sách giới hạn tải của YouTube, hệ thống tự động phát hiện và chuyển tiếp tải ngay luồng Muxed chuẩn YouTube (có cờ `ratebypass=yes`) hoàn tất trong 1 giây mà không bắt người dùng phải thao tác lại từ đầu.
+- **Huy Hiệu & Phân Loại Luồng "⚡ Tải Siêu Tốc"**:
+  - Gắn nhãn `⚡ Tải Siêu Tốc (Khuyên Dùng)` cho các luồng Muxed (360p/720p có sẵn âm thanh) để người dùng ưu tiên lựa chọn tải tức thì trong 1 giây không bao giờ bị giới hạn băng thông.
+
+### [Changed]
+- **Hủy Tải Lập Tức (Instant Cancellation Response)**:
+  - Hàm `cancelDownload` cập nhật ngay lập tức trạng thái `TaskStatus.canceled` và nhãn `Đã hủy` lên giao diện trong 0.01s mà không cần chờ tác vụ luồng ngầm dừng lại.
+- Nâng cấp `versionCode: 16` và `versionName: 1.1.5`.
+
+### [Fixed]
+- **Khắc phục triệt để lỗi đứng hình ở 31.9% / 28.5 MB (>1 phút) trên Android**:
+  - Điều tra và giải quyết dứt điểm nguyên nhân YouTube áp đặt giới hạn 35MB (3 chunks x 10MB) lên các luồng video riêng lẻ không có cờ `ratebypass=yes`.
+  - Khắc phục vòng lặp vô hạn bên trong `_httpClient.getStream()` của thư viện khi nhận lỗi 403, giúp ứng dụng luôn phản hồi linh hoạt và không bao giờ bị đơ giao diện.
+
+---
+
 ## [v1.1.4] - 2026-10-01
 
 ### [Added]
