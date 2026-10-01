@@ -2,6 +2,31 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.1.3] - 2026-10-01
+
+### [Added]
+- **Quản lý Vòng Đời Tải Linh Hoạt (Task Lifecycle & Real Cancellation)**:
+  - Bổ sung trạng thái `TaskStatus.canceled` và các getter trạng thái thông minh (`isActive`, `isFailedOrCanceled`).
+  - Hỗ trợ lưu trữ `metadata` và `format` trực tiếp trong `DownloadTask` để phục vụ tính năng **Thử lại tải (Retry)** tiện lợi mà không cần quay lại tìm kiếm video.
+  - Thao tác kéo vuốt để xóa (`Dismissible` swipe-to-dismiss) trực tiếp trên từng thẻ tác vụ.
+  - Bổ sung nút **"Dọn dẹp" (`Icons.cleaning_services_outlined`)** trên thanh AppBar màn hình Đang Tải để dọn sạch toàn bộ các tác vụ đã hủy/lỗi chỉ với 1 chạm.
+
+### [Changed]
+- **Nâng Cấp Giao Diện Màn Hình Đang Tải (DownloadsScreen UX Revamp)**:
+  - Thanh AppBar chỉ đếm chính xác số lượng tác vụ thực sự đang tải (`isActive`): `Đang Tải Xuống (N)` thay vì đếm cả các tác vụ đã hủy/lỗi.
+  - Nút bấm trên thẻ tác vụ chuyển đổi linh hoạt theo ngữ cảnh: Nút Hủy `(X)` khi đang tải, và cụm nút **Thử lại (Retry)** + **Xóa (Close)** khi tác vụ đã hủy hoặc gặp sự cố.
+  - Phản hồi trạng thái ngay lập tức: Hiển thị `Đang kết nối...` ngay khi bấm tải thay vì để trống khiến người dùng có cảm giác ứng dụng bị đơ.
+- Nâng cấp `versionCode: 14` và `versionName: 1.1.3`.
+
+### [Fixed]
+- **Khắc phục triệt để lỗi tải đứng yên `0.0 MB / 0.0%` (Zero-Progress Stall Fix)**:
+  - Tích hợp cơ chế ngắt thời gian chờ an toàn (`timeout`) 25 giây cho lệnh lấy manifest và từng chunk dữ liệu luồng mạng, ngăn chặn hoàn toàn tình trạng treo vô hạn (`infinite wait`) khi gặp mạng lag hoặc bị nghẽn socket kết nối.
+- **Khắc phục lỗi bấm Hủy nhưng tác vụ vẫn đứng yên trên màn hình (Broken Cancellation & UI Trap Fix)**:
+  - Khắc phục cơ chế hủy không hoạt động với Engine A: Quản lý tập trung `_activeYtClients`, `_activeSubscriptions` và `_activeSinks` để ngay lập tức ngắt socket mạng TCP/TLS, hủy lắng nghe Stream và đóng file sink khi người dùng bấm Hủy.
+  - Khắc phục lỗi bộ lọc `!t.isCompleted` trong UI giữ lại các tác vụ đã hủy khiến thẻ không biến mất và tiêu đề vẫn đếm `Đang Tải Xuống (1)`.
+
+---
+
 ## [v1.1.2] - 2026-09-29
 
 ### [Added]

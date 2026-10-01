@@ -1,9 +1,13 @@
+import 'video_metadata.dart';
+import 'download_format.dart';
+
 enum TaskStatus {
   pending,
   downloading,
   paused,
   completed,
   failed,
+  canceled,
 }
 
 class DownloadTask {
@@ -15,6 +19,8 @@ class DownloadTask {
   final String resolution;
   final String ext;
   final String filePath;
+  final VideoMetadata? metadata;
+  final DownloadFormat? format;
   int totalBytes;
   int downloadedBytes;
   double progress;
@@ -34,6 +40,8 @@ class DownloadTask {
     required this.ext,
     required this.filePath,
     required this.totalBytes,
+    this.metadata,
+    this.format,
     this.downloadedBytes = 0,
     this.progress = 0.0,
     this.speedStr = '',
@@ -63,4 +71,7 @@ class DownloadTask {
   bool get isCompleted => status == TaskStatus.completed;
   bool get isDownloading => status == TaskStatus.downloading;
   bool get isFailed => status == TaskStatus.failed;
+  bool get isCanceled => status == TaskStatus.canceled;
+  bool get isActive => status == TaskStatus.downloading || status == TaskStatus.pending;
+  bool get isFailedOrCanceled => status == TaskStatus.failed || status == TaskStatus.canceled;
 }
