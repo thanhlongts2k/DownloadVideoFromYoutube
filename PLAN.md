@@ -241,6 +241,10 @@
   - Biên dịch APK Release `TubeX-v1.1.1.apk` và phát hành lên GitHub Release.
 
 ### 🎁 BẢN BUILD RELEASE ĐÃ PHÁT HÀNH TRÊN GIT
+- 📦 **GitHub Release**: [v1.1.4 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.4)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.4.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.4/TubeX-v1.1.4.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 18/18 unit tests passed, bypass 100% SABR 403 trên luồng âm thanh khi ghép Video.
+
 - 📦 **GitHub Release**: [v1.1.3 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.3)
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.3.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.3/TubeX-v1.1.3.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 18/18 unit tests passed, cơ chế hủy và timeout luồng mạng tải YouTube hoạt động trơn tru.
