@@ -87,7 +87,7 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
           (format.videoTag != null || format.audioTag != null);
 
       if (hasNativeTags) {
-        final yt = YoutubeExplode();
+        var yt = YoutubeExplode();
         _activeYtClients[taskId] = yt;
         try {
           final manifest = await yt.videos.streamsClient
@@ -344,6 +344,12 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
             } catch (muxError) {
               if (_activeCancellations[taskId] == true) rethrow;
 
+              // Đóng và dọn dẹp các sink đang mở dở dang
+              final oldSink = _activeSinks.remove(taskId);
+              if (oldSink != null) {
+                try { await oldSink.close(); } catch (_) {}
+              }
+
               // SMART AUTO-FALLBACK: Nếu luồng video độ phân giải cao bị YouTube chặn 403 Forbidden (>35MB) hoặc timeout,
               // tự động kích hoạt luồng Muxed chuẩn YouTube (360p/720p có cờ ratebypass=yes) để cứu vãn 100% video hoàn chỉnh có âm thanh!
               final muxedFallbacks = manifest.muxed.sortByVideoQuality();
@@ -355,6 +361,11 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
                   t.downloadedBytes = 0;
                   t.totalBytes = fallbackStream.size.totalBytes;
                 });
+
+                // Khởi tạo client YoutubeExplode mới tinh vì client cũ đã bị watchdog đóng socket để phá vỡ treo
+                try { yt.close(); } catch (_) {}
+                yt = YoutubeExplode();
+                _activeYtClients[taskId] = yt;
 
                 final fFile = File(targetPath);
                 if (await fFile.exists()) await fFile.delete();
@@ -662,7 +673,7 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
           }
         } finally {
           _activeYtClients.remove(taskId);
-          yt.close();
+          try { yt.close(); } catch (_) {}
         }
       } else {
         // FALLBACK: Engine B (Server Mode qua Flask API)
@@ -772,11 +783,16 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
 
     void resetWatchdog() {
       watchdogTimer?.cancel();
-      // Watchdog 15 giây: nếu quá 15s không có chunk dữ liệu nào được phát ra (do YouTube bóp/chặn 403)
-      watchdogTimer = Timer(const Duration(seconds: 15), () {
+      // Watchdog 10 giây: nếu quá 10s không có chunk dữ liệu nào được phát ra (do YouTube bóp/chặn 403)
+      watchdogTimer = Timer(const Duration(seconds: 10), () {
         if (!completer.isCompleted) {
+          // Cưỡng chế đóng socket TCP của yt client để ngắt dứt điểm mọi luồng đọc đang bị treo bên dưới OS
+          final yt = _activeYtClients[taskId];
+          if (yt != null) {
+            try { yt.close(); } catch (_) {}
+          }
           completer.completeError(
-            TimeoutException('Quá thời gian chờ mạng YouTube phản hồi (15s)'),
+            TimeoutException('Quá thời gian chờ mạng YouTube phản hồi (10s)'),
           );
         }
       });
@@ -815,7 +831,9 @@ class DownloadManagerNotifier extends StateNotifier<List<DownloadTask>> {
     } finally {
       watchdogTimer?.cancel();
       _activeSubscriptions.remove(taskId);
-      await sub.cancel();
+      // TUYỆT ĐỐI KHÔNG await sub.cancel(): vì trên stream generator async* đang bị treo mạng,
+      // await sub.cancel() sẽ gây async deadlock vĩnh viễn không bao giờ nhả luồng.
+      unawaited(sub.cancel().catchError((_) {}));
     }
   }
 

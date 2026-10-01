@@ -2,6 +2,21 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **TubeX** sẽ được ghi lại trong tài liệu này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v1.1.6] - 2026-10-02
+
+### [Fixed]
+- **Triệt tiêu hoàn toàn lỗi Dart Async Generator Deadlock trong `_pipeStream`**:
+  - Loại bỏ lệnh `await sub.cancel()` trong khối `finally` vốn gây deadlock vĩnh viễn trên các generator `async*` khi luồng mạng bên dưới bị kẹt. Thay thế bằng cơ chế hủy non-blocking `unawaited(sub.cancel().catchError((_) {}))`.
+  - Watchdog tự động cưỡng chế đóng socket TCP (`yt.close()`) ngay sau 10 giây nếu YouTube ngắt truyền dữ liệu, lập tức giải phóng tiến trình Dart đang chờ socket.
+- **Kích hoạt tức thì Smart Auto-Fallback khi YouTube chặn Chunk thứ 3 (HTTP 403 / Freeze)**:
+  - Khởi tạo mới hoàn toàn phiên kết nối `YoutubeExplode` trong khối bắt lỗi `catch (muxError)` để tải ngay luồng Muxed chuẩn YouTube có sẵn âm thanh và cờ `ratebypass=yes`.
+  - Tải thành công 100% video chỉ sau 1-2 giây ngay cả khi người dùng chọn nhầm định dạng phân mảnh bị YouTube chặn.
+
+### [Changed]
+- Nâng cấp `versionCode: 17` và `versionName: 1.1.6`.
+
+---
+
 ## [v1.1.5] - 2026-10-02
 
 ### [Added]

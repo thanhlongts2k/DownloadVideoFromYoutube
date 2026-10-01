@@ -257,6 +257,10 @@
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.2.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.2/TubeX-v1.1.2.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 16/16 unit tests passed, biên dịch Release thành công 100%.
 
+- 📦 **GitHub Release**: [v1.1.6 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.6)
+- 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.6.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.6/TubeX-v1.1.6.apk)
+- 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 18/18 unit tests passed, triệt tiêu Dart Async Generator Deadlock & kích hoạt tức thì Smart Auto-Fallback.
+
 - 📦 **GitHub Release**: [v1.1.1 - TubeX Android Release Build](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/tag/v1.1.1)
 - 📥 **Link tải trực tiếp APK**: [TubeX-v1.1.1.apk](https://github.com/thanhlongts2k/DownloadVideoFromYoutube/releases/download/v1.1.1/TubeX-v1.1.1.apk)
 - 🛡️ **Kiểm thử chất lượng**: `flutter analyze` đạt 0 issues, 13/13 unit tests passed, biên dịch Release thành công 100%.
